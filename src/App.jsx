@@ -9,9 +9,10 @@ import LinkSubmission from './pages/submit/LinkSubmission'
 import OCRPreviewPage from './pages/submit/OCRPreviewPage'
 import SubmissionReview from './pages/submit/SubmissionReview'
 import Validating from './pages/validation/Validating'
-import ValidationReady from './pages/validation/ValidationReady'
-import ValidationWarning from './pages/validation/ValidationWarning'
-import ValidationBlocker from './pages/validation/ValidationBlocker'
+// import ValidationReady from './pages/validation/ValidationReady'
+// import ValidationWarning from './pages/validation/ValidationWarning'
+// import ValidationBlocker from './pages/validation/ValidationBlocker'
+import AnalysisDashboard from './pages/validation/AnalysisDashboard'
 import ConsentScreen from './pages/consent/ConsentScreen'
 import ReconsiderationWindow from './pages/consent/ReconsiderationWindow'
 import TargetedFix from './pages/fix/TargetedFix'
@@ -38,9 +39,7 @@ export default function App() {
 
         {/* Screens 3.x — Validation & Decision */}
         <Route path="/submit/validating" element={<Validating />} />
-        <Route path="/result/ready" element={<ValidationReady />} />
-        <Route path="/result/warning" element={<ValidationWarning />} />
-        <Route path="/result/blocker" element={<ValidationBlocker />} />
+        <Route path="/result/analysis" element={<AnalysisDashboard />} />
 
         {/* Screens 4.x — Consent Flow */}
         <Route path="/consent" element={<ConsentScreen />} />

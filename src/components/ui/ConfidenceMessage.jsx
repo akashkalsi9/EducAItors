@@ -54,7 +54,7 @@ export default function ConfidenceMessage({ confidence = 'high' }) {
       {/* ── HeroUI Alert ── */}
       <Alert
         status={config.status}
-        className="rounded-none border-0 shadow-none"
+        className="rounded-none border-0 shadow-none items-center [&_[data-slot=alert-content]]:flex-row [&_[data-slot=alert-content]]:items-center [&_[data-slot=alert-content]]:gap-3"
       >
         <AlertTitle>{config.headline}</AlertTitle>
         <AlertDescription>{config.subtext}</AlertDescription>

@@ -262,9 +262,9 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    <div className="border-l-4 border-warning bg-warning-soft rounded-xl p-4">
-                      <p className="text-xs text-warning leading-relaxed">
-                        <span className="font-semibold">Note: </span>
+                    <div className="bg-warning-soft rounded-xl p-4">
+                      <p className="text-xs text-foreground leading-relaxed">
+                        <span className="font-semibold text-warning">Note: </span>
                         {brief.notes}
                       </p>
                     </div>
@@ -390,7 +390,7 @@ export default function Dashboard() {
           <div className="w-full lg:w-80 shrink-0 flex flex-col gap-4 lg:sticky lg:top-24">
 
             {/* Deadline + CTA combined card */}
-            <Card className={`rounded-xl border border-border p-0 gap-0 ${deadlineTopBorder}`}>
+            <Card className="rounded-xl border border-border p-0 gap-0">
               <CardContent className="p-5 gap-0">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-muted">
                   Submission Deadline
@@ -429,25 +429,23 @@ export default function Dashboard() {
 
             {/* First-timer card */}
             {submissionStatus === 'not-started' && (
-              <Card className="rounded-xl border border-border border-l-4 border-l-info p-0">
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-3">
-                    <Info className="w-5 h-5 text-info shrink-0 mt-0.5" strokeWidth={2} aria-hidden="true" />
-                    <div>
-                      <p className="text-sm font-bold text-foreground">First time submitting?</p>
-                      <p className="text-xs text-muted mt-1 leading-snug">
-                        Learn how AI validation works before you start.
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2 px-0 text-info font-semibold"
-                        onPress={() => setShowOrientation(true)}
-                      >
-                        Take the walkthrough →
-                      </Button>
-                    </div>
+              <Card className="rounded-xl border border-border p-0">
+                <CardContent className="p-5 flex flex-col items-start gap-0">
+                  <div className="w-10 h-10 rounded-xl bg-info-soft flex items-center justify-center">
+                    <Info className="w-5 h-5 text-info" strokeWidth={2} aria-hidden="true" />
                   </div>
+                  <p className="text-sm font-bold text-foreground mt-3">First time submitting?</p>
+                  <p className="text-xs text-muted mt-1 leading-snug">
+                    Learn how AI validation works before you start.
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 px-0 text-info font-semibold"
+                    onPress={() => setShowOrientation(true)}
+                  >
+                    Take the walkthrough →
+                  </Button>
                 </CardContent>
               </Card>
             )}

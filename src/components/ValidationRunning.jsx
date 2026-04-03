@@ -27,9 +27,9 @@ import { mockAssignment } from '../data/mock-assignment'
 
 // ─── Result route map ──────────────────────────────────────────────────────────
 const RESULT_ROUTES = {
-  ready:   '/result/ready',
-  warning: '/result/warning',
-  blocker: '/result/blocker',
+  ready:   '/result/analysis',
+  warning: '/result/analysis',
+  blocker: '/result/analysis',
 }
 
 // ─── Result icon config ────────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
     const t3 = setTimeout(() => {
       navigate(
         RESULT_ROUTES[demoResultRef.current] ?? RESULT_ROUTES.warning,
-        { state: { primaryFile, artifactData, linkStatuses, isResubmission } }
+        { state: { primaryFile, artifactData, linkStatuses, isResubmission, readiness: demoResultRef.current } }
       )
     }, 4400)
 

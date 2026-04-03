@@ -183,8 +183,8 @@ export default function OCRPreviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               >
-                <Card className="rounded-xl border border-border p-0">
-                <CardContent className="p-6 lg:p-8">
+                <Card className="rounded-xl border border-border p-0 gap-0">
+                <CardContent className="p-4 gap-0">
                 <h1 className="text-[22px] font-bold text-foreground tracking-tight leading-tight">
                   Here's what we found
                 </h1>
