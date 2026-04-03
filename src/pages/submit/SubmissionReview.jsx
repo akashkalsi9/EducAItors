@@ -24,7 +24,7 @@ import InnerPageBar from '../../components/ui/InnerPageBar'
 import SubmissionStepper from '../../components/ui/SubmissionStepper'
 import SubmissionItemRow from '../../components/ui/SubmissionItemRow'
 import PreCheckBanner from '../../components/ui/PreCheckBanner'
-import RubricMappingAccordion from '../../components/ui/RubricMappingAccordion'
+// RubricMappingAccordion moved to Analysis Dashboard (post-validation)
 import { mockAssignment } from '../../data/mock-assignment'
 import { mockSubmission } from '../../data/mock-submission'
 import { useCountdown } from '../../hooks/useCountdown'
@@ -58,7 +58,7 @@ export default function SubmissionReview() {
   const artifactData = routeState?.artifactData ?? null
   const linkStatuses = routeState?.linkStatuses ?? {}
 
-  const { title, courseName, deadline, rubric } = mockAssignment
+  const { title, courseName, deadline } = mockAssignment
   const { totalHours, expired } = useCountdown(deadline)
   const { studentName, studentId, items, submittedAt } = mockSubmission
 
@@ -213,17 +213,6 @@ export default function SubmissionReview() {
             ))}
           </CardContent>
         </Card>
-        </motion.div>
-
-        {/* ════════════════════════════════════════════════════════════════
-            SECTION 5 — RUBRIC MAPPING (Priya)
-            ════════════════════════════════════════════════════════════════ */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.65 }}
-        >
-          <RubricMappingAccordion items={items} rubric={rubric} />
         </motion.div>
 
         {/* ════════════════════════════════════════════════════════════════

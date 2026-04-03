@@ -9,8 +9,13 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Button, Card, CardContent, Chip } from '@heroui/react'
-import { AlertTriangle, CheckCircle2, XCircle, Eye, ShieldCheck, Image } from 'lucide-react'
+import {
+  Button, Card, CardContent, Chip,
+  Accordion, AccordionItem, AccordionHeading, AccordionTrigger,
+  AccordionPanel, AccordionBody, AccordionIndicator,
+  ProgressBar, ProgressBarTrack, ProgressBarFill,
+} from '@heroui/react'
+import { AlertTriangle, CheckCircle2, XCircle, Eye, ShieldCheck, Image, Layers, ChevronDown, TrendingUp } from 'lucide-react'
 import InnerPageBar from '../../components/ui/InnerPageBar'
 import { mockAssignment } from '../../data/mock-assignment'
 
@@ -66,6 +71,70 @@ const DOC_LINES = [
   { width: '70%', highlighted: false },
   { width: '55%', highlighted: false },
   { width: '90%', highlighted: false },
+]
+
+// ─── Mock rubric evaluation data ──────────────────────────────────────────────
+const MOCK_RUBRIC_EVAL = [
+  {
+    criterionId: 'c1',
+    name: 'Problem Framing & Analysis',
+    weight: 20,
+    feedback: 'Problem is clearly framed and well-evidenced. Frameworks are applied correctly and the root cause is identified with logical reasoning.',
+    improvements: [
+      'Include more supporting evidence from external sources',
+      'Strengthen the root cause analysis with quantitative data',
+    ],
+  },
+  {
+    criterionId: 'c2',
+    name: 'Strategic Framework Application',
+    weight: 20,
+    feedback: 'Two frameworks applied correctly with good supporting evidence. Insights are clearly linked to the recommendation.',
+    improvements: [
+      'Synthesise insights across frameworks for a more cohesive strategic picture',
+      'Add PESTEL analysis to complement existing frameworks',
+    ],
+  },
+  {
+    criterionId: 'c3',
+    name: 'Quality of Recommendation',
+    weight: 20,
+    feedback: 'Clear recommendation with sound rationale. Three alternatives evaluated with financial impact estimated.',
+    improvements: [
+      'Strengthen counter-argument anticipation',
+      'Add more explicit decision criteria for alternative comparison',
+    ],
+  },
+  {
+    criterionId: 'c4',
+    name: 'Financial Grounding',
+    weight: 15,
+    feedback: 'Financial model covers cost-benefit and 3-year projection. Assumptions are documented.',
+    improvements: [
+      'Add scenario analysis (base / optimistic / pessimistic)',
+      'Include sensitivity analysis on key assumptions',
+    ],
+  },
+  {
+    criterionId: 'c5',
+    name: 'Completeness',
+    weight: 15,
+    feedback: 'Most required sections present and adequately developed. Some supplementary content could add value.',
+    improvements: [
+      'Add appendices with supporting data tables',
+      'Include AI usage disclosure appendix',
+    ],
+  },
+  {
+    criterionId: 'c6',
+    name: 'Clarity & Attention to Detail',
+    weight: 10,
+    feedback: 'Writing is clear and well-organised. Referencing is mostly complete with minor formatting inconsistencies.',
+    improvements: [
+      'Standardise citation format throughout',
+      'Proofread for minor grammatical inconsistencies',
+    ],
+  },
 ]
 
 // ─── Banner config per readiness state ─────────────────────────────────────────
@@ -362,6 +431,95 @@ export default function AnalysisDashboard() {
               </Card>
             </div>
 
+          </div>
+        </div>
+
+        {/* ── RUBRIC EVALUATION — full width, below three panels ── */}
+        <div className="px-8 lg:px-10 pb-8">
+          <div className="max-w-7xl mx-auto">
+            <Card className="rounded-xl border border-border p-0 gap-0">
+
+              {/* Header */}
+              <div className="px-6 py-5 border-b border-border flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-soft flex items-center justify-center">
+                  <Layers className="w-4 h-4 text-purple" strokeWidth={2} aria-hidden="true" />
+                </div>
+                <h2 className="text-[16px] font-bold text-foreground">Rubric-Based Evaluation</h2>
+              </div>
+
+              {/* AI disclaimer */}
+              <div className="px-6 py-3 bg-purple-soft border-b border-border">
+                <p className="text-[13px] text-purple leading-relaxed">
+                  <span className="font-semibold">AI Instructor Evaluation:</span> Your submission has been evaluated against the assignment rubric. Your instructor makes the final grade decision.
+                </p>
+              </div>
+
+              {/* Criteria accordion */}
+              <Accordion>
+                {MOCK_RUBRIC_EVAL.map((criterion, index) => (
+                  <AccordionItem key={criterion.criterionId} value={criterion.criterionId}>
+                    <AccordionHeading>
+                      <AccordionTrigger className="px-6 py-4 w-full hover:bg-surface-secondary">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] font-semibold text-foreground">{criterion.name}</span>
+                            <span className="text-[13px] text-muted">({criterion.weight}%)</span>
+                          </div>
+                          <div className="mt-2 w-full">
+                            <ProgressBar
+                              value={criterion.weight}
+                              min={0}
+                              max={100}
+                              size="sm"
+                              color="accent"
+                              aria-label={`${criterion.name} weight`}
+                              className="w-full"
+                            >
+                              <ProgressBarTrack>
+                                <ProgressBarFill />
+                              </ProgressBarTrack>
+                            </ProgressBar>
+                          </div>
+                        </div>
+                        <AccordionIndicator>
+                          <ChevronDown className="w-4 h-4 text-muted" strokeWidth={2} aria-hidden="true" />
+                        </AccordionIndicator>
+                      </AccordionTrigger>
+                    </AccordionHeading>
+                    <AccordionPanel>
+                      <AccordionBody className="px-6 pb-5 pt-0">
+
+                        {/* Feedback */}
+                        <div className="mb-4">
+                          <p className="text-[12px] font-semibold text-muted uppercase tracking-widest mb-1">Feedback</p>
+                          <p className="text-[14px] text-muted leading-relaxed">{criterion.feedback}</p>
+                        </div>
+
+                        {/* Areas for improvement */}
+                        {criterion.improvements.length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <TrendingUp className="w-3.5 h-3.5 text-info" strokeWidth={2} aria-hidden="true" />
+                              <p className="text-[12px] font-semibold text-info uppercase tracking-widest">Areas for Improvement</p>
+                            </div>
+                            <ul className="flex flex-col gap-1.5">
+                              {criterion.improvements.map((item, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <span className="text-muted mt-1.5 text-[8px]" aria-hidden="true">●</span>
+                                  <span className="text-[13px] text-muted leading-snug">{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                      </AccordionBody>
+                    </AccordionPanel>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+
+            </Card>
           </div>
         </div>
 
