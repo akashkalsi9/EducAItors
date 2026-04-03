@@ -200,7 +200,7 @@ export default function LinkSubmission() {
           transition={{ duration: 0.3, ease: 'easeOut', delay: 0.5 }}
         >
         <Card className="rounded-xl border border-border p-0">
-        <CardContent className="p-6 lg:p-8">
+        <CardContent className="px-6 lg:px-8 pt-6 lg:pt-8 pb-3 lg:pb-4">
           {/* Seeded optional links from mock data */}
           {mockAssignment.optionalLinks.map((link, i) => (
             <motion.div
