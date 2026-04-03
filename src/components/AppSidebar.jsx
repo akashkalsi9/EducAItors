@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { id: 'dashboard',   label: 'Dashboard',   Icon: LayoutDashboard, route: '/',             isActive: () => false                     },
   { id: 'modules',     label: 'Modules',      Icon: FolderOpen,      route: '/status',       isActive: (p) => p.startsWith('/status')  },
   { id: 'assignments', label: 'Assignments',  Icon: BookOpen,        route: '/',             isActive: (p) => p === '/' || p.startsWith('/submit') || p.startsWith('/result') || p.startsWith('/consent') || p.startsWith('/fix') || p === '/orientation' },
-  { id: 'results',     label: 'Results',      Icon: BarChart2,       route: '/result/ready', isActive: (p) => p.startsWith('/result')  },
+  { id: 'results',     label: 'Results',      Icon: BarChart2,       route: '/result/ready', isActive: () => false  },
 ]
 
 // ─── Single nav item ──────────────────────────────────────────────────────────
