@@ -20,7 +20,7 @@ import StatusDashboard from './pages/StatusDashboard'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/EducAItors">
       <AppShell>
       <Routes>
         {/* Screen 1.1 — Assignment Entry */}
