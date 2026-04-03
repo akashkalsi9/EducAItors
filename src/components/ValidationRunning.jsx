@@ -15,20 +15,19 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, CheckCircle2, FileSearch, ScanText, Link2, Layers, Sparkles } from 'lucide-react'
+import { Loader2, CheckCircle2, FileSearch, Link2, Layers, Sparkles } from 'lucide-react'
 import { Card, CardContent } from '@heroui/react'
 import { mockAssignment } from '../data/mock-assignment'
 
 // ─── Validation steps ─────────────────────────────────────────────────────────
 const STEPS = [
   { id: 'files',    label: 'Checking uploaded files',  Icon: FileSearch, completeAt: 1000  },
-  { id: 'ocr',      label: 'Reading document (OCR)',   Icon: ScanText,   completeAt: 2500  },
-  { id: 'links',    label: 'Verifying links',          Icon: Link2,      completeAt: 3500  },
-  { id: 'rubric',   label: 'Mapping to rubric',        Icon: Layers,     completeAt: 5000  },
-  { id: 'analysis', label: 'Generating analysis',      Icon: Sparkles,   completeAt: 6000  },
+  { id: 'links',    label: 'Verifying links',          Icon: Link2,      completeAt: 2500  },
+  { id: 'rubric',   label: 'Mapping to rubric',        Icon: Layers,     completeAt: 4000  },
+  { id: 'analysis', label: 'Generating analysis',      Icon: Sparkles,   completeAt: 5500  },
 ]
 
-const NAVIGATE_AT = 6800 // ms — navigate after brief pause post-completion
+const NAVIGATE_AT = 6300 // ms — navigate after brief pause post-completion
 
 // ─── Result route ─────────────────────────────────────────────────────────────
 const DEFAULT_DEMO_RESULT = 'warning'

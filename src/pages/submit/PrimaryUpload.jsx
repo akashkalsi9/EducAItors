@@ -196,20 +196,22 @@ export default function PrimaryUpload() {
         <div className="bg-white border-t border-border px-8 lg:px-10 py-4">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
 
-          {/* Helper text — fades in after file confirmed */}
-          <AnimatePresence>
-            {isFileConfirmed && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-                className="text-[13px] text-muted"
-              >
-                Your file is saved. You can come back to this step if needed.
-              </motion.p>
-            )}
-          </AnimatePresence>
+          <div className="flex flex-col gap-0.5">
+            <AnimatePresence>
+              {isFileConfirmed && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                  className="text-[13px] text-muted"
+                >
+                  Your file is saved. You can come back to this step if needed.
+                </motion.p>
+              )}
+            </AnimatePresence>
+            <p className="text-[11px] text-muted/60">AI will check your work. Your instructor decides the grade.</p>
+          </div>
 
           {/* CTA button */}
           <motion.div

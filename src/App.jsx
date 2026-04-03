@@ -7,7 +7,7 @@ import PrimaryUpload from './pages/submit/PrimaryUpload'
 import ArtifactUpload from './pages/submit/ArtifactUpload'
 import LinkSubmission from './pages/submit/LinkSubmission'
 // import OCRPreviewPage from './pages/submit/OCRPreviewPage'  // OCR moved to validation step
-import SubmissionReview from './pages/submit/SubmissionReview'
+// import SubmissionReview from './pages/submit/SubmissionReview'  // Review removed — Analysis Dashboard is the review
 import Validating from './pages/validation/Validating'
 // import ValidationReady from './pages/validation/ValidationReady'
 // import ValidationWarning from './pages/validation/ValidationWarning'
@@ -34,8 +34,7 @@ export default function App() {
         <Route path="/submit/upload" element={<PrimaryUpload />} />
         <Route path="/submit/artifacts" element={<ArtifactUpload />} />
         <Route path="/submit/links" element={<LinkSubmission />} />
-        {/* OCR preview removed — OCR processing now happens during validation */}
-        <Route path="/submit/review" element={<SubmissionReview />} />
+        {/* Review removed — Analysis Dashboard serves as the review */}
 
         {/* Screens 3.x — Validation & Decision */}
         <Route path="/submit/validating" element={<Validating />} />

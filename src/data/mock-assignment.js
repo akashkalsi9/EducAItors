@@ -10,7 +10,7 @@ export const mockAssignment = {
     { id: 'a1', name: 'Business Case PDF',    type: 'pdf',         required: true  },
     { id: 'a2', name: 'Financial Model',       type: 'xlsx',        required: true  },
     { id: 'a3', name: 'Presentation Deck',     type: 'pptx',        required: false },
-    { id: 'a4', name: 'Problem Statement',     type: 'handwritten', required: true, requiresOCR: true },
+    { id: 'a4', name: 'Handwritten Response',   type: 'handwritten', required: true, requiresOCR: true },
   ],
   // External links — Screen 2.3
   requiredLinks: [
@@ -56,7 +56,7 @@ export const mockAssignment = {
       { label: 'Business Case PDF', detail: '2,500–3,500 words. Structured sections: Executive Summary, Problem Framing, Environmental Analysis, Alternatives, Recommendation, Financial Impact, Risk Plan, References.' },
       { label: 'Financial Model (Excel)', detail: 'Cost-benefit model with at least 3-year projection. Must include assumptions sheet, scenario analysis (base / optimistic / pessimistic), and a summary dashboard tab.' },
       { label: 'Presentation Deck (optional)', detail: '8–12 slides summarising the case for a C-suite audience. If submitted, this will be used for the in-class presentation in Week 6.' },
-      { label: 'Handwritten Problem Statement', detail: 'One A4 page, written before any research. Describe the problem in your own words, your initial hypothesis, and what you expect to find. Submit as a clear photograph (JPG/PNG).' },
+      { label: 'Handwritten Response', detail: 'One A4 page, written before any research. Describe the problem in your own words, your initial hypothesis, and what you expect to find. Submit as a clear photograph (JPG/PNG).' },
     ],
     notes: 'AI tools may be used to assist with research synthesis and editing but all strategic analysis, frameworks, and recommendations must reflect your own thinking. Any AI-generated content must be disclosed in an appendix. Undisclosed AI use will be treated as academic misconduct.',
     pdfUrl: '#',

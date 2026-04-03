@@ -1,21 +1,19 @@
 /**
- * AnalysisDashboard
+ * AnalysisDashboard — Review & Analyse
  *
- * Unified validation results screen — replaces Ready/Warning/Blocker.
- * Three-panel layout: Issues (left), Document Preview (center), Issue Details (right).
- * Top banner shows risk level. Sticky bottom bar with CTAs.
+ * Single-column validation results screen.
+ * Sections: Status banner → Submission details → Issues → Rubric evaluation.
+ * Replaces the old three-panel layout.
  */
 
-import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import {
   Button, Card, CardContent, Chip,
   Accordion, AccordionItem, AccordionHeading, AccordionTrigger,
   AccordionPanel, AccordionBody, AccordionIndicator,
   ProgressBar, ProgressBarTrack, ProgressBarFill,
 } from '@heroui/react'
-import { AlertTriangle, CheckCircle2, XCircle, Eye, ShieldCheck, Image, Layers, ChevronDown, TrendingUp } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, XCircle, Layers, ChevronDown, TrendingUp, FileText, Table2, Link2, Monitor, Camera } from 'lucide-react'
 import InnerPageBar from '../../components/ui/InnerPageBar'
 import { mockAssignment } from '../../data/mock-assignment'
 
@@ -35,133 +33,64 @@ const MOCK_ISSUES = [
   {
     id: 'i2',
     type: 'warning',
-    title: 'Chart image is partially unreadable',
-    description: 'The data visualization chart on page 4 has low OCR confidence. The evaluator may not be able to read this section properly.',
+    title: 'References section incomplete',
+    description: 'The references section on page 8 contains only 3 citations. The rubric expects evidence-based analysis with properly cited external sources.',
     file: 'Business Case PDF',
-    page: 4,
+    page: 8,
     impact: '+10 marks',
-    confidence: '38%',
-    recommendation: 'Re-upload a clearer version of the chart, or export it at higher resolution. Ensure text labels are legible.',
-    fixAction: 'Re-upload clearer chart',
+    recommendation: 'Add at least 5 more academic or industry references to support your strategic analysis. Ensure all claims in the body are backed by citations.',
+    fixAction: 'Add more references',
   },
 ]
 
-// ─── Passing checks shown when "Show all" is toggled ───────────────────────────
-const MOCK_PASSING = [
-  { id: 'p1', label: 'Business Case PDF', note: 'Readable — no issues found' },
-  { id: 'p2', label: 'Financial Model', note: 'File is accessible' },
-  { id: 'p3', label: 'Figma Prototype', note: 'Link accessible and has content' },
-  { id: 'p4', label: 'Problem Statement', note: 'Handwriting is clear — good to go' },
+// ─── Mock submission items ────────────────────────────────────────────────────
+const MOCK_SUBMISSION_ITEMS = [
+  { name: 'Business Case Analysis.pdf', detail: 'PDF · 2.4 MB', Icon: FileText, iconBg: 'bg-accent-soft', iconColor: 'text-accent', status: 'ready' },
+  { name: 'Financial Model.xlsx', detail: 'XLSX · 840 KB', Icon: Table2, iconBg: 'bg-teal-soft', iconColor: 'text-teal', status: 'ready' },
+  { name: 'Supporting Document', detail: 'Google Drive link', Icon: Link2, iconBg: 'bg-teal-soft', iconColor: 'text-teal', status: 'warning' },
+  { name: 'Presentation Deck.pptx', detail: 'PPTX · 4.1 MB', Icon: Monitor, iconBg: 'bg-pink-soft', iconColor: 'text-pink', status: 'ready' },
+  { name: 'Handwritten Response.jpg', detail: 'JPG · 1.2 MB', Icon: Camera, iconBg: 'bg-purple-soft', iconColor: 'text-purple', status: 'ready' },
 ]
 
-// ─── Skeleton document lines for preview ───────────────────────────────────────
-const DOC_LINES = [
-  { width: '85%', highlighted: false },
-  { width: '70%', highlighted: false },
-  { width: '90%', highlighted: false },
-  { width: '60%', highlighted: false },
-  { width: '95%', highlighted: false },
-  { width: '75%', highlighted: false },
-  { width: '40%', highlighted: 'warning' },
-  { width: '88%', highlighted: false },
-  { width: '92%', highlighted: false },
-  { width: '65%', highlighted: false },
-  { width: 'chart', highlighted: 'danger' },
-  { width: '80%', highlighted: false },
-  { width: '70%', highlighted: false },
-  { width: '55%', highlighted: false },
-  { width: '90%', highlighted: false },
-]
-
-// ─── Mock rubric evaluation data ──────────────────────────────────────────────
+// ─── Mock rubric evaluation ───────────────────────────────────────────────────
 const MOCK_RUBRIC_EVAL = [
   {
-    criterionId: 'c1',
-    name: 'Problem Framing & Analysis',
-    weight: 20,
+    criterionId: 'c1', name: 'Problem Framing & Analysis', weight: 20,
     feedback: 'Problem is clearly framed and well-evidenced. Frameworks are applied correctly and the root cause is identified with logical reasoning.',
-    improvements: [
-      'Include more supporting evidence from external sources',
-      'Strengthen the root cause analysis with quantitative data',
-    ],
+    improvements: ['Include more supporting evidence from external sources', 'Strengthen the root cause analysis with quantitative data'],
   },
   {
-    criterionId: 'c2',
-    name: 'Strategic Framework Application',
-    weight: 20,
+    criterionId: 'c2', name: 'Strategic Framework Application', weight: 20,
     feedback: 'Two frameworks applied correctly with good supporting evidence. Insights are clearly linked to the recommendation.',
-    improvements: [
-      'Synthesise insights across frameworks for a more cohesive strategic picture',
-      'Add PESTEL analysis to complement existing frameworks',
-    ],
+    improvements: ['Synthesise insights across frameworks for a more cohesive strategic picture', 'Add PESTEL analysis to complement existing frameworks'],
   },
   {
-    criterionId: 'c3',
-    name: 'Quality of Recommendation',
-    weight: 20,
+    criterionId: 'c3', name: 'Quality of Recommendation', weight: 20,
     feedback: 'Clear recommendation with sound rationale. Three alternatives evaluated with financial impact estimated.',
-    improvements: [
-      'Strengthen counter-argument anticipation',
-      'Add more explicit decision criteria for alternative comparison',
-    ],
+    improvements: ['Strengthen counter-argument anticipation', 'Add more explicit decision criteria for alternative comparison'],
   },
   {
-    criterionId: 'c4',
-    name: 'Financial Grounding',
-    weight: 15,
+    criterionId: 'c4', name: 'Financial Grounding', weight: 15,
     feedback: 'Financial model covers cost-benefit and 3-year projection. Assumptions are documented.',
-    improvements: [
-      'Add scenario analysis (base / optimistic / pessimistic)',
-      'Include sensitivity analysis on key assumptions',
-    ],
+    improvements: ['Add scenario analysis (base / optimistic / pessimistic)', 'Include sensitivity analysis on key assumptions'],
   },
   {
-    criterionId: 'c5',
-    name: 'Completeness',
-    weight: 15,
+    criterionId: 'c5', name: 'Completeness', weight: 15,
     feedback: 'Most required sections present and adequately developed. Some supplementary content could add value.',
-    improvements: [
-      'Add appendices with supporting data tables',
-      'Include AI usage disclosure appendix',
-    ],
+    improvements: ['Add appendices with supporting data tables', 'Include AI usage disclosure appendix'],
   },
   {
-    criterionId: 'c6',
-    name: 'Clarity & Attention to Detail',
-    weight: 10,
+    criterionId: 'c6', name: 'Clarity & Attention to Detail', weight: 10,
     feedback: 'Writing is clear and well-organised. Referencing is mostly complete with minor formatting inconsistencies.',
-    improvements: [
-      'Standardise citation format throughout',
-      'Proofread for minor grammatical inconsistencies',
-    ],
+    improvements: ['Standardise citation format throughout', 'Proofread for minor grammatical inconsistencies'],
   },
 ]
 
-// ─── Banner config per readiness state ─────────────────────────────────────────
+// ─── Banner config ────────────────────────────────────────────────────────────
 const BANNER_CONFIG = {
-  ready: {
-    bg: 'bg-success-soft',
-    border: 'border-success',
-    Icon: CheckCircle2,
-    iconColor: 'text-success',
-    headline: 'Your submission looks good',
-    sub: 'All checks passed. You can submit with confidence.',
-  },
-  warning: {
-    bg: 'bg-warning-soft',
-    border: 'border-warning',
-    Icon: AlertTriangle,
-    iconColor: 'text-warning',
-    headline: 'You can submit, but there are risks',
-  },
-  blocker: {
-    bg: 'bg-danger-soft',
-    border: 'border-danger',
-    Icon: XCircle,
-    iconColor: 'text-danger',
-    headline: 'Some issues need to be fixed',
-    sub: 'These issues must be resolved before your work can be evaluated.',
-  },
+  ready:   { bg: 'bg-success-soft', border: 'border-success', Icon: CheckCircle2, iconColor: 'text-success', headline: 'Your submission looks good', sub: 'All checks passed. You can submit with confidence.' },
+  warning: { bg: 'bg-warning-soft', border: 'border-warning', Icon: AlertTriangle, iconColor: 'text-warning', headline: 'You can submit, but there are risks' },
+  blocker: { bg: 'bg-danger-soft',  border: 'border-danger',  Icon: XCircle,       iconColor: 'text-danger',  headline: 'Some issues need to be fixed', sub: 'These issues must be resolved before your work can be evaluated.' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,38 +100,35 @@ export default function AnalysisDashboard() {
 
   const issues = routeState?.warnings ?? MOCK_ISSUES
   const readiness = routeState?.readiness ?? (
-    MOCK_ISSUES.some(i => i.type === 'blocker')
-      ? 'blocker'
-      : MOCK_ISSUES.length > 0
-        ? 'warning'
-        : 'ready'
+    MOCK_ISSUES.some(i => i.type === 'blocker') ? 'blocker'
+    : MOCK_ISSUES.length > 0 ? 'warning' : 'ready'
   )
   const deadline = routeState?.deadline ?? mockAssignment.deadline
-
-  const [selectedIssue, setSelectedIssue] = useState(issues[0] ?? null)
-  const [showAll, setShowAll] = useState(false)
 
   const banner = BANNER_CONFIG[readiness] ?? BANNER_CONFIG.warning
   const bannerSub = banner.sub ?? `${issues.length} issue${issues.length !== 1 ? 's' : ''} may affect your marks. Review them carefully before submitting.`
 
+  const submissionTime = new Date().toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  })
+
   return (
     <>
       <InnerPageBar
-        title="Analysis Results"
+        title="Review & Analyse"
         deadline={deadline}
         breadcrumbItems={[
           { label: 'Assignments', href: '/' },
-          { label: 'Validation Results' },
-          { label: 'Analysis' },
+          { label: 'Review & Analyse' },
         ]}
       />
 
-      <div className="flex flex-col min-h-screen bg-surface-secondary">
+      <div className="min-h-screen bg-surface-secondary">
+        <div className="px-8 lg:px-10 py-8">
+          <div className="max-w-4xl mx-auto space-y-6">
 
-        {/* ── TOP BANNER ── */}
-        <div className="px-8 lg:px-10">
-          <div className="max-w-7xl mx-auto py-4">
-            {/* Alert banner */}
+            {/* ═══ 1. STATUS BANNER ═══ */}
             <div className={`rounded-xl p-5 flex items-start gap-4 ${banner.bg} border ${banner.border}`}>
               <banner.Icon className={`w-6 h-6 ${banner.iconColor} shrink-0 mt-0.5`} aria-hidden="true" />
               <div className="flex-1">
@@ -223,223 +149,92 @@ export default function AnalysisDashboard() {
               </div>
             </div>
 
-            {/* Next Best Action */}
-            {issues.length > 0 && (
-              <div className="mt-3 flex items-center justify-between">
-                <p className="text-[13px] text-muted">
-                  <span className="font-semibold text-foreground">Next Best Action: </span>
-                  Fix &ldquo;{issues[0].title}&rdquo; &rarr; {issues[0].impact} (highest impact)
-                </p>
-                <Button variant="primary" size="sm" className="rounded-lg px-4" onPress={() => setSelectedIssue(issues[0])}>
-                  Review Now
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── THREE PANEL LAYOUT ── */}
-        <div className="flex-1 px-8 lg:px-10 pb-24">
-          <div className="max-w-7xl mx-auto flex gap-6 items-start">
-
-            {/* LEFT: Issues List */}
-            <div className="w-80 shrink-0">
-              <Card className="rounded-xl border border-border p-0 gap-0 sticky top-[180px]">
-                <CardContent className="p-0 gap-0">
-                  {/* Header */}
-                  <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                    <p className="text-[13px] font-bold text-foreground">Issues Requiring Attention</p>
-                    <button onClick={() => setShowAll(!showAll)} className="text-[12px] font-medium text-accent">
-                      {showAll ? 'Issues only' : 'Show all'}
-                    </button>
-                  </div>
-
-                  {/* Issue cards */}
-                  {issues.map(issue => (
-                    <button
-                      key={issue.id}
-                      onClick={() => setSelectedIssue(issue)}
-                      className={`w-full text-left px-4 py-3 border-b border-border hover:bg-surface-secondary transition-colors ${
-                        selectedIssue?.id === issue.id ? 'bg-surface-secondary' : ''
-                      }`}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <AlertTriangle
-                          className={`w-4 h-4 shrink-0 mt-0.5 ${issue.type === 'blocker' ? 'text-danger' : 'text-warning'}`}
-                          aria-hidden="true"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-semibold text-foreground leading-snug">{issue.title}</p>
-                          <p className="text-[12px] text-muted mt-0.5 line-clamp-2">{issue.description}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Chip variant="soft" color={issue.type === 'blocker' ? 'danger' : 'warning'} size="sm">
-                              {issue.type === 'blocker' ? 'Blocker' : 'Warning'}
-                            </Chip>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-
-                  {/* Passing checks (when showAll toggled) */}
-                  {showAll && MOCK_PASSING.map(check => (
-                    <div key={check.id} className="px-4 py-3 border-b border-border flex items-start gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-success shrink-0 mt-0.5" aria-hidden="true" />
-                      <div>
-                        <p className="text-[13px] font-medium text-foreground">{check.label}</p>
-                        <p className="text-[12px] text-muted mt-0.5">{check.note}</p>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Ready state — no issues */}
-                  {issues.length === 0 && (
-                    <div className="px-4 py-6 text-center">
-                      <CheckCircle2 className="w-8 h-8 text-success mx-auto" aria-hidden="true" />
-                      <p className="text-[14px] font-semibold text-foreground mt-2">All checks passed</p>
-                      <p className="text-[12px] text-muted mt-1">Your submission is ready.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* CENTER: Document Preview */}
-            <div className="flex-1 min-w-0">
-              <Card className="rounded-xl border border-border p-0 gap-0">
-                <div className="px-5 py-3 border-b border-border flex items-center justify-between">
-                  <p className="text-[13px] font-bold text-foreground">Document Preview</p>
-                  <button className="flex items-center gap-1.5 text-[12px] font-medium text-accent">
-                    <Eye className="w-3.5 h-3.5" aria-hidden="true" />
-                    Full View
-                  </button>
-                </div>
-                <CardContent className="p-6 gap-0">
-                  <div className="bg-white border border-border rounded-lg p-8 min-h-[500px]">
-                    <div className="flex flex-col gap-3">
-                      {DOC_LINES.map((line, i) => {
-                        if (line.width === 'chart') {
-                          return (
-                            <div
-                              key={i}
-                              className={`w-full h-40 rounded-lg border-2 border-dashed flex items-center justify-center ${
-                                line.highlighted === 'danger' ? 'border-danger bg-danger-soft' : 'border-border bg-surface-secondary'
-                              }`}
-                            >
-                              <div className="text-center">
-                                <Image
-                                  className={`w-8 h-8 mx-auto ${line.highlighted === 'danger' ? 'text-danger' : 'text-muted'}`}
-                                  aria-hidden="true"
-                                />
-                                <p className={`text-xs mt-1 ${line.highlighted === 'danger' ? 'text-danger font-semibold' : 'text-muted'}`}>
-                                  {line.highlighted === 'danger' ? 'OCR Confidence: 38%' : 'Chart area'}
-                                </p>
-                              </div>
-                            </div>
-                          )
-                        }
-                        return (
-                          <div
-                            key={i}
-                            className={`h-3 rounded-full ${
-                              line.highlighted === 'warning' ? 'bg-warning-soft border border-warning' :
-                              line.highlighted === 'danger' ? 'bg-danger-soft border border-danger' :
-                              'bg-default'
-                            }`}
-                            style={{ width: line.width }}
-                          />
-                        )
-                      })}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* RIGHT: Issue Details */}
-            <div className="w-80 shrink-0">
-              <Card className="rounded-xl border border-border p-0 gap-0 sticky top-[180px]">
-                <CardContent className="p-5 gap-0">
-                  {selectedIssue ? (
-                    <>
-                      {/* Issue icon */}
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        selectedIssue.type === 'blocker' ? 'bg-danger-soft' : 'bg-warning-soft'
-                      }`}>
-                        <AlertTriangle
-                          className={`w-5 h-5 ${selectedIssue.type === 'blocker' ? 'text-danger' : 'text-warning'}`}
-                          aria-hidden="true"
-                        />
-                      </div>
-
-                      <p className="text-[15px] font-bold text-foreground mt-3">{selectedIssue.title}</p>
-                      <p className="text-[13px] text-muted mt-2 leading-relaxed">{selectedIssue.description}</p>
-
-                      {/* Metadata */}
-                      <div className="mt-4 flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] text-muted">File</span>
-                          <span className="text-[12px] font-medium text-foreground">{selectedIssue.file}</span>
-                        </div>
-                        {selectedIssue.page && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-[12px] text-muted">Page</span>
-                            <span className="text-[12px] font-medium text-foreground">{selectedIssue.page}</span>
-                          </div>
-                        )}
-                        {selectedIssue.confidence && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-[12px] text-muted">OCR Confidence</span>
-                            <span className="text-[12px] font-semibold text-danger">{selectedIssue.confidence}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] text-muted">Potential impact</span>
-                          <span className="text-[12px] font-semibold text-success">{selectedIssue.impact}</span>
-                        </div>
-                      </div>
-
-                      {/* Recommendation */}
-                      <div className="mt-4 p-3 rounded-lg bg-surface-secondary">
-                        <p className="text-[12px] font-semibold text-foreground">Recommendation</p>
-                        <p className="text-[12px] text-muted mt-1 leading-relaxed">{selectedIssue.recommendation}</p>
-                      </div>
-
-                      {/* Fix button */}
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        fullWidth
-                        className="mt-4 rounded-lg"
-                        onPress={() => {}}
-                      >
-                        {selectedIssue.fixAction}
-                      </Button>
-                    </>
-                  ) : (
-                    /* No issue selected — show summary */
-                    <div className="text-center py-4">
-                      <ShieldCheck className="w-10 h-10 text-success mx-auto" aria-hidden="true" />
-                      <p className="text-[15px] font-bold text-foreground mt-3">Your submission is ready</p>
-                      <p className="text-[13px] text-muted mt-1">All checks passed. You can submit with confidence.</p>
-                      <p className="text-[12px] font-semibold text-purple mt-4">
-                        AI processes your work. Your instructor makes the final grade decision.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-          </div>
-        </div>
-
-        {/* ── RUBRIC EVALUATION — full width, below three panels ── */}
-        <div className="px-8 lg:px-10 pb-8">
-          <div className="max-w-7xl mx-auto">
+            {/* ═══ 2. SUBMISSION DETAILS ═══ */}
             <Card className="rounded-xl border border-border p-0 gap-0">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h2 className="text-[15px] font-bold text-foreground">Your submission</h2>
+                <span className="text-[13px] text-muted">{MOCK_SUBMISSION_ITEMS.length} items</span>
+              </div>
 
-              {/* Header */}
+              {/* File rows */}
+              {MOCK_SUBMISSION_ITEMS.map((item, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center gap-4 px-6 py-3.5 ${i < MOCK_SUBMISSION_ITEMS.length - 1 ? 'border-b border-border' : ''}`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${item.iconBg}`} aria-hidden="true">
+                    <item.Icon className={`w-5 h-5 ${item.iconColor}`} strokeWidth={1.75} aria-hidden="true" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-medium text-foreground">{item.name}</p>
+                    <p className="text-[12px] text-muted">{item.detail}</p>
+                  </div>
+                  <Chip variant="soft" color={item.status === 'ready' ? 'success' : 'warning'} size="sm">
+                    {item.status === 'ready' ? 'Ready' : 'Warning'}
+                  </Chip>
+                </div>
+              ))}
+
+              {/* Student metadata */}
+              <div className="px-6 py-4 border-t border-border bg-surface-secondary rounded-b-xl">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-muted">Submitting as</span>
+                    <span className="text-[13px] font-medium text-foreground">Riya Sharma · Student ID 2024MBA089</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-muted">Assignment</span>
+                    <span className="text-[13px] font-medium text-foreground">{mockAssignment.title}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-muted">Submission time</span>
+                    <span className="text-[13px] font-medium text-foreground">{submissionTime}</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* ═══ 3. ISSUES (conditional) ═══ */}
+            {issues.length > 0 && (
+              <Card className="rounded-xl border border-border p-0 gap-0">
+                <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                  <h2 className="text-[15px] font-bold text-foreground">Issues Requiring Attention</h2>
+                  <span className="text-[13px] text-muted">{issues.length} issues</span>
+                </div>
+                {issues.map((issue, i) => (
+                  <div key={issue.id} className={`px-6 py-5 ${i < issues.length - 1 ? 'border-b border-border' : ''}`}>
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        issue.type === 'blocker' ? 'bg-danger-soft' : 'bg-warning-soft'
+                      }`}>
+                        <AlertTriangle className={`w-4 h-4 ${issue.type === 'blocker' ? 'text-danger' : 'text-warning'}`} aria-hidden="true" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-[14px] font-semibold text-foreground">{issue.title}</p>
+                          <Chip variant="soft" color={issue.type === 'blocker' ? 'danger' : 'warning'} size="sm">
+                            {issue.type === 'blocker' ? 'Blocker' : 'Warning'}
+                          </Chip>
+                        </div>
+                        <p className="text-[13px] text-muted mt-1 leading-relaxed">{issue.description}</p>
+                        <div className="mt-3 flex items-center gap-4 text-[12px] text-muted">
+                          <span>File: {issue.file}</span>
+                          {issue.page && <span>Page {issue.page}</span>}
+                          <span className="font-semibold text-success">{issue.impact}</span>
+                        </div>
+                        <div className="mt-3 p-3 rounded-lg bg-surface-secondary">
+                          <p className="text-[12px] font-semibold text-foreground">Recommendation</p>
+                          <p className="text-[12px] text-muted mt-1 leading-relaxed">{issue.recommendation}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </Card>
+            )}
+
+            {/* ═══ 4. RUBRIC EVALUATION ═══ */}
+            <Card className="rounded-xl border border-border p-0 gap-0">
               <div className="px-6 py-5 border-b border-border flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-purple-soft flex items-center justify-center">
                   <Layers className="w-4 h-4 text-purple" strokeWidth={2} aria-hidden="true" />
@@ -447,16 +242,14 @@ export default function AnalysisDashboard() {
                 <h2 className="text-[16px] font-bold text-foreground">Rubric-Based Evaluation</h2>
               </div>
 
-              {/* AI disclaimer */}
               <div className="px-6 py-3 bg-purple-soft border-b border-border">
                 <p className="text-[13px] text-purple leading-relaxed">
                   <span className="font-semibold">AI Instructor Evaluation:</span> Your submission has been evaluated against the assignment rubric. Your instructor makes the final grade decision.
                 </p>
               </div>
 
-              {/* Criteria accordion */}
               <Accordion>
-                {MOCK_RUBRIC_EVAL.map((criterion, index) => (
+                {MOCK_RUBRIC_EVAL.map((criterion) => (
                   <AccordionItem key={criterion.criterionId} value={criterion.criterionId}>
                     <AccordionHeading>
                       <AccordionTrigger className="px-6 py-4 w-full hover:bg-surface-secondary">
@@ -466,18 +259,8 @@ export default function AnalysisDashboard() {
                             <span className="text-[13px] text-muted">({criterion.weight}%)</span>
                           </div>
                           <div className="mt-2 w-full">
-                            <ProgressBar
-                              value={criterion.weight}
-                              min={0}
-                              max={100}
-                              size="sm"
-                              color="accent"
-                              aria-label={`${criterion.name} weight`}
-                              className="w-full"
-                            >
-                              <ProgressBarTrack>
-                                <ProgressBarFill />
-                              </ProgressBarTrack>
+                            <ProgressBar value={criterion.weight} min={0} max={100} size="sm" color="accent" aria-label={`${criterion.name} weight`} className="w-full">
+                              <ProgressBarTrack><ProgressBarFill /></ProgressBarTrack>
                             </ProgressBar>
                           </div>
                         </div>
@@ -488,14 +271,10 @@ export default function AnalysisDashboard() {
                     </AccordionHeading>
                     <AccordionPanel>
                       <AccordionBody className="px-6 pb-5 pt-0">
-
-                        {/* Feedback */}
                         <div className="mb-4">
                           <p className="text-[12px] font-semibold text-muted uppercase tracking-widest mb-1">Feedback</p>
                           <p className="text-[14px] text-muted leading-relaxed">{criterion.feedback}</p>
                         </div>
-
-                        {/* Areas for improvement */}
                         {criterion.improvements.length > 0 && (
                           <div>
                             <div className="flex items-center gap-1.5 mb-2">
@@ -512,25 +291,21 @@ export default function AnalysisDashboard() {
                             </ul>
                           </div>
                         )}
-
                       </AccordionBody>
                     </AccordionPanel>
                   </AccordionItem>
                 ))}
               </Accordion>
-
             </Card>
+
           </div>
         </div>
 
-        {/* ── STICKY BOTTOM BAR ── */}
+        {/* ═══ STICKY BOTTOM ═══ */}
         <div className="sticky bottom-0 w-full z-40">
-          <div
-            className="pointer-events-none absolute -top-6 left-0 right-0 h-6 bg-gradient-to-b from-transparent to-surface-secondary"
-            aria-hidden="true"
-          />
+          <div className="pointer-events-none absolute -top-6 left-0 right-0 h-6 bg-gradient-to-b from-transparent to-surface-secondary" aria-hidden="true" />
           <div className="bg-white border-t border-border px-8 lg:px-10 py-4">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="max-w-4xl mx-auto flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-success" aria-hidden="true" />
                 <span className="text-[13px] text-muted">Your progress is saved automatically</span>
@@ -550,11 +325,7 @@ export default function AnalysisDashboard() {
                   variant="primary"
                   size="sm"
                   className="rounded-lg px-6 font-semibold"
-                  onPress={() =>
-                    readiness === 'ready'
-                      ? navigate('/status')
-                      : navigate('/fix', { state: { warning: issues[0], warnings: issues, deadline } })
-                  }
+                  onPress={() => readiness === 'ready' ? navigate('/status') : navigate('/fix', { state: { warning: issues[0], warnings: issues, deadline } })}
                 >
                   {readiness === 'ready' ? 'Submit' : 'Fix Issues'}
                 </Button>

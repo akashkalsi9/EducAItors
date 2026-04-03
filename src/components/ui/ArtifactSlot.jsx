@@ -16,9 +16,9 @@
  *   onReplace     — () => void
  */
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { motion, useAnimation } from 'framer-motion'
-import { UploadCloud, CheckCircle2, XCircle } from 'lucide-react'
+import { UploadCloud, CheckCircle2, XCircle, AlertTriangle, Loader2, ChevronDown } from 'lucide-react'
 import { Button, Chip } from '@heroui/react'
 import FileTypeIcon from './FileTypeIcon'
 import ProgressBar from './ProgressBar'
@@ -68,6 +68,51 @@ export default function ArtifactSlot({
   const shakeControls = useAnimation()
 
   const [isDragOver, setIsDragOver] = useState(false)
+
+  // ── OCR state (for handwritten/image artifacts with requiresOCR) ──────────
+  const [ocrState, setOcrState] = useState('idle')
+  const [ocrConfidence, setOcrConfidence] = useState(null)
+  const [ocrProgress, setOcrProgress] = useState(0)
+  const [ocrElapsed, setOcrElapsed] = useState(0)
+  const [showOcrPreview, setShowOcrPreview] = useState(false)
+
+  useEffect(() => {
+    if (slotState === 'confirmed' && artifact.requiresOCR) {
+      setOcrState('processing')
+      setOcrProgress(0)
+      setOcrElapsed(0)
+
+      // Elapsed time counter (every second)
+      const elapsedInterval = setInterval(() => {
+        setOcrElapsed(prev => prev + 1)
+      }, 1000)
+
+      // Progress simulation (~8 seconds)
+      let progress = 0
+      const progressInterval = setInterval(() => {
+        progress += Math.random() * 4 + 1
+        if (progress >= 100) {
+          progress = 100
+          clearInterval(progressInterval)
+          clearInterval(elapsedInterval)
+          setOcrState('complete')
+          setOcrConfidence('high')
+        }
+        setOcrProgress(Math.round(progress))
+      }, 200)
+
+      return () => {
+        clearInterval(progressInterval)
+        clearInterval(elapsedInterval)
+      }
+    }
+    if (slotState !== 'confirmed') {
+      setOcrState('idle')
+      setOcrConfidence(null)
+      setOcrProgress(0)
+      setShowOcrPreview(false)
+    }
+  }, [slotState, artifact.requiresOCR])
 
   // ── File picked via input ──────────────────────────────────────────────────
   function handleInputChange(e) {
@@ -212,6 +257,13 @@ export default function ArtifactSlot({
               </div>
             )
           })()}
+
+          {/* OCR hint for handwritten artifacts */}
+          {artifact.requiresOCR && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="text-[11px] text-purple">Your handwriting will be checked for readability after upload</span>
+            </div>
+          )}
         </div>
       )
     }
@@ -304,6 +356,89 @@ export default function ArtifactSlot({
             Replace file
           </Button>
         </div>
+
+        {/* Inline OCR feedback for requiresOCR artifacts */}
+        {artifact.requiresOCR && ocrState === 'processing' && (
+          <div className="mt-3 p-3 rounded-lg bg-purple-soft">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[12px] font-semibold text-purple">Reading handwriting...</span>
+              <span className="text-[11px] text-muted">{ocrProgress}%</span>
+            </div>
+            <div className="w-full h-1.5 bg-white/50 rounded-full overflow-hidden mb-2">
+              <motion.div
+                className="h-full bg-purple rounded-full"
+                initial={{ width: '0%' }}
+                animate={{ width: `${ocrProgress}%` }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-purple/70">This may take up to 5 minutes</span>
+              <span className="text-[11px] text-purple/70">{ocrElapsed}s elapsed</span>
+            </div>
+          </div>
+        )}
+
+        {artifact.requiresOCR && ocrState === 'complete' && ocrConfidence === 'high' && (
+          <div className="mt-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-success" aria-hidden="true" />
+                <span className="text-[12px] font-semibold text-success">Handwriting is clear — good to go</span>
+              </div>
+              <span className="text-[11px] font-medium text-success">Confidence: 94%</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowOcrPreview(!showOcrPreview)}
+              className="mt-2 text-[12px] font-medium text-purple hover:underline flex items-center gap-1 min-h-[44px]"
+            >
+              {showOcrPreview ? 'Hide' : 'View'} extracted text
+              <ChevronDown className={`w-3 h-3 transition-transform ${showOcrPreview ? 'rotate-180' : ''}`} aria-hidden="true" />
+            </button>
+            {showOcrPreview && (
+              <div className="mt-1 p-4 rounded-lg border border-border bg-white">
+                <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-2">Extracted Text</p>
+                <p className="text-[13px] text-foreground leading-relaxed">
+                  This assignment <span className="bg-success-soft px-0.5 rounded">analyses</span> the strategic challenges facing Tesla Inc. in the European market, focusing on <span className="bg-success-soft px-0.5 rounded">supply chain disruptions</span> and regulatory compliance. The recommended approach involves a <span className="bg-warning-soft px-0.5 rounded">phased market</span> entry strategy with emphasis on local manufacturing partnerships and <span className="bg-success-soft px-0.5 rounded">sustainability</span> initiatives.
+                </p>
+                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+                  <div className="flex items-center gap-3 text-[11px] text-muted">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success" aria-hidden="true" /> High confidence</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-warning" aria-hidden="true" /> Uncertain</span>
+                  </div>
+                  <span className="text-[11px] text-muted">42 words extracted</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {artifact.requiresOCR && ocrState === 'complete' && ocrConfidence === 'medium' && (
+          <div className="mt-3 rounded-lg border border-warning bg-warning-soft p-3">
+            <div className="flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-warning" aria-hidden="true" />
+              <span className="text-[12px] font-semibold text-warning">Some parts may be hard to read</span>
+            </div>
+            <p className="text-[11px] text-muted mt-1">Check your photo quality. Consider re-uploading if text is unclear.</p>
+            <button type="button" onClick={onReplace} className="mt-2 text-[12px] font-semibold text-warning hover:underline min-h-11">
+              Re-upload a clearer photo
+            </button>
+          </div>
+        )}
+
+        {artifact.requiresOCR && ocrState === 'complete' && ocrConfidence === 'low' && (
+          <div className="mt-3 rounded-lg border border-danger bg-danger-soft p-3">
+            <div className="flex items-center gap-1.5">
+              <XCircle className="w-3.5 h-3.5 text-danger" aria-hidden="true" />
+              <span className="text-[12px] font-semibold text-danger">Parts may be unreadable</span>
+            </div>
+            <p className="text-[11px] text-muted mt-1">Try a clearer photo in better lighting. The AI may not be able to read this.</p>
+            <button type="button" onClick={onReplace} className="mt-2 text-[12px] font-semibold text-danger hover:underline min-h-11">
+              Re-upload a clearer photo
+            </button>
+          </div>
+        )}
       </div>
     )
   }

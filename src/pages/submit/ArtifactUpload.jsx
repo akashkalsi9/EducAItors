@@ -243,21 +243,23 @@ export default function ArtifactUpload() {
         <div className="bg-white border-t border-border px-8 lg:px-10 py-4">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
 
-          {/* Helper text */}
-          <AnimatePresence>
-            {allRequiredDone && (
-              <motion.p
-                key="helper"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-                className="text-[13px] text-muted"
-              >
-                All required files added. You're good to go.
-              </motion.p>
-            )}
-          </AnimatePresence>
+          <div className="flex flex-col gap-0.5">
+            <AnimatePresence>
+              {allRequiredDone && (
+                <motion.p
+                  key="helper"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                  className="text-[13px] text-muted"
+                >
+                  All required files added. You're good to go.
+                </motion.p>
+              )}
+            </AnimatePresence>
+            <p className="text-[11px] text-muted/60">AI will check your work. Your instructor decides the grade.</p>
+          </div>
 
           {/* CTA button */}
           <Button
