@@ -80,7 +80,7 @@ export default function LinkCheckSummary({ links = [] }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="mx-4 rounded-xl border border-border bg-white overflow-hidden"
+      className="rounded-xl border border-border bg-white overflow-hidden"
     >
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-border flex items-center gap-2">

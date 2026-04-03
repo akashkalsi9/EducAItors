@@ -183,23 +183,6 @@ export default function SubmissionReview() {
         </motion.div>
 
         {/* ════════════════════════════════════════════════════════════════
-            SECTION 3 — PRE-CHECK BANNER
-            ════════════════════════════════════════════════════════════════ */}
-        <motion.div
-          ref={preCheckRef}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-        >
-          <PreCheckBanner
-            checkState={preCheckState}
-            issues={PRECHECK_ISSUES}
-            onCheck={handlePreCheck}
-            onFix={handleEdit}
-          />
-        </motion.div>
-
-        {/* ════════════════════════════════════════════════════════════════
             SECTION 4 — SUBMISSION ITEMS LIST
             ════════════════════════════════════════════════════════════════ */}
         <motion.div
