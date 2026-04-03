@@ -235,7 +235,7 @@ export default function ValidationReady() {
         <div className="pointer-events-none absolute -top-6 left-0 right-0 h-6 bg-gradient-to-b from-transparent to-white" />
 
         {/* CTA bar */}
-        <div className="bg-white border-t border-border px-8 lg:px-10 pb-5 pt-3">
+        <div className="bg-white border-t border-border px-8 lg:px-10 py-4">
           <div className="max-w-2xl mx-auto flex items-center justify-end">
           <motion.div whileTap={{ scale: 0.97 }}>
             <Button
