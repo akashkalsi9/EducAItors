@@ -6,6 +6,7 @@ import Orientation from './pages/Orientation'
 import PrimaryUpload from './pages/submit/PrimaryUpload'
 import ArtifactUpload from './pages/submit/ArtifactUpload'
 import LinkSubmission from './pages/submit/LinkSubmission'
+import SubmitPage from './pages/submit/SubmitPage'
 // import OCRPreviewPage from './pages/submit/OCRPreviewPage'  // OCR moved to validation step
 // import SubmissionReview from './pages/submit/SubmissionReview'  // Review removed — Analysis Dashboard is the review
 import Validating from './pages/validation/Validating'
@@ -31,9 +32,10 @@ export default function App() {
         <Route path="/orientation" element={<Orientation />} />
 
         {/* Screens 2.x — Submission Building */}
-        <Route path="/submit/upload" element={<PrimaryUpload />} />
-        <Route path="/submit/artifacts" element={<ArtifactUpload />} />
-        <Route path="/submit/links" element={<LinkSubmission />} />
+        <Route path="/submit" element={<SubmitPage />} />
+        {/* <Route path="/submit/upload" element={<PrimaryUpload />} /> */}
+        {/* <Route path="/submit/artifacts" element={<ArtifactUpload />} /> */}
+        {/* <Route path="/submit/links" element={<LinkSubmission />} /> */}
         {/* Review removed — Analysis Dashboard serves as the review */}
 
         {/* Screens 3.x — Validation & Decision */}

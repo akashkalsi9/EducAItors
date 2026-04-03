@@ -416,7 +416,7 @@ export default function Dashboard() {
                     fullWidth
                     size="lg"
                     className="rounded-xl"
-                    onPress={() => navigate('/submit/upload')}
+                    onPress={() => navigate('/submit')}
                   >
                     Start submission
                   </Button>

@@ -27,6 +27,13 @@ const STEPS = [
   { id: 'analysis', label: 'Generating analysis',      Icon: Sparkles,   completeAt: 5500  },
 ]
 
+const RESUBMIT_STEPS = [
+  { id: 'recheck',  label: 'Re-checking updated item', Icon: FileSearch, completeAt: 1500  },
+  { id: 'analysis', label: 'Updating analysis',        Icon: Sparkles,   completeAt: 3000  },
+]
+
+const RESUBMIT_NAVIGATE_AT = 3800
+
 const NAVIGATE_AT = 6300 // ms — navigate after brief pause post-completion
 
 // ─── Result route ─────────────────────────────────────────────────────────────
@@ -38,6 +45,8 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
   const { state: routeState } = useLocation()
 
   const isResubmission = isResubmissionProp || (routeState?.isResubmission ?? false)
+  const steps = isResubmission ? RESUBMIT_STEPS : STEPS
+  const navigateAt = isResubmission ? RESUBMIT_NAVIGATE_AT : NAVIGATE_AT
   const primaryFile  = routeState?.primaryFile  ?? null
   const artifactData = routeState?.artifactData ?? null
   const linkStatuses = routeState?.linkStatuses ?? {}
@@ -57,17 +66,17 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
   // ── Progress percentage ───────────────────────────────────────────────────
   const progress = useMemo(() => {
     if (completedSteps.size === 0) return 5 // show a sliver immediately
-    return Math.round((completedSteps.size / STEPS.length) * 100)
-  }, [completedSteps])
+    return Math.round((completedSteps.size / steps.length) * 100)
+  }, [completedSteps, steps])
 
   // ── Timer sequence ────────────────────────────────────────────────────────
   useEffect(() => {
     const timers = []
 
     // Schedule each step completion
-    STEPS.forEach((step, index) => {
+    steps.forEach((step, index) => {
       // Activate step slightly before completion
-      const activateAt = index === 0 ? 100 : STEPS[index - 1].completeAt + 200
+      const activateAt = index === 0 ? 100 : steps[index - 1].completeAt + 200
       timers.push(setTimeout(() => setActiveStepIndex(index), activateAt))
 
       // Complete step
@@ -81,7 +90,7 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
       navigate('/result/analysis', {
         state: { primaryFile, artifactData, linkStatuses, isResubmission, readiness: demoResultRef.current },
       })
-    }, NAVIGATE_AT))
+    }, navigateAt))
 
     return () => timers.forEach(clearTimeout)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -118,7 +127,12 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
         className="w-full max-w-md"
       >
         <Card className="rounded-2xl border border-border p-0 gap-0">
-          <CardContent className="p-8 gap-0">
+          {/* ── Assignment context ──────────────────────────────────────── */}
+          <div className="px-8 pt-5 pb-0">
+            <p className="text-[12px] font-medium text-muted text-center truncate">{title}</p>
+          </div>
+
+          <CardContent className="px-8 pt-4 pb-8 gap-0">
 
             {/* ── Spinner icon ──────────────────────────────────────────── */}
             <div className="flex justify-center mb-5">
@@ -133,10 +147,10 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
 
             {/* ── Headline ──────────────────────────────────────────────── */}
             <h1 className="text-[20px] font-bold text-foreground text-center tracking-tight">
-              Validating your submission...
+              {isResubmission ? 'Checking your update...' : 'Validating your submission...'}
             </h1>
             <p className="text-[14px] text-muted text-center mt-1.5">
-              This usually takes a few seconds
+              {isResubmission ? "We're only re-checking what you changed" : 'This usually takes a few seconds'}
             </p>
 
             {/* ── Resubmission note ─────────────────────────────────────── */}
@@ -150,7 +164,7 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
 
             {/* ── Step checklist ─────────────────────────────────────────── */}
             <div className="mt-6 flex flex-col gap-0.5">
-              {STEPS.map((step, index) => {
+              {steps.map((step, index) => {
                 const status = getStepStatus(step, index)
                 return (
                   <motion.div
@@ -223,10 +237,10 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
             {/* ── Reassurance ────────────────────────────────────────────── */}
             <div className="mt-5 text-center">
               <p className="text-[13px] text-muted">
-                Your work has been received.
+                Nothing is submitted yet — you can still make changes.
               </p>
-              <p className="text-[12px] text-muted mt-0.5">
-                Do not close this screen.
+              <p className="text-[12px] text-muted/60 mt-1.5">
+                We check first. Your instructor reviews next.
               </p>
             </div>
 
