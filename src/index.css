@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* HeroUI v3 — includes Tailwind CSS v4 and all component styles */
+@import "@heroui/styles";
+
+/* ── Override HeroUI accent → brand-blue ─────────────────────────────────── */
+:root {
+  --accent: #1F4E8C;
+  --accent-foreground: #ffffff;
+
+  /* Extended semantic colours — harmonised with accent #1F4E8C */
+  --info: #2E74C6;
+  --info-foreground: #ffffff;
+
+  --purple: #6846A8;
+  --purple-foreground: #ffffff;
+
+  --teal: #1A7A6D;
+  --teal-foreground: #ffffff;
+
+  --pink: #B03560;
+  --pink-foreground: #ffffff;
+
+  /* Lighten the page canvas — HeroUI default is too dark */
+  --surface-secondary: #F8F9FA;
+}
+
+/* ── Custom design tokens (Tailwind v4 @theme) ───────────────────────────── */
+@theme {
+  /* Typography */
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  /* Gradients */
+  --background-image-ai-gradient: linear-gradient(135deg, #1F4E8C 0%, #22C55E 100%);
+
+  /* Max widths */
+  --max-width-content: 480px;
+
+  /* ── Extended colours — following HeroUI's color-mix pattern ──────────── */
+
+  /* Info (Rich Blue) — informational, tips, help */
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: color-mix(in oklab, var(--info) 15%, transparent);
+  --color-info-soft-foreground: var(--info);
+  --color-info-soft-hover: color-mix(in oklab, var(--info) 20%, transparent);
+
+  /* Purple — AI features, handwriting/OCR, creative */
+  --color-purple: var(--purple);
+  --color-purple-foreground: var(--purple-foreground);
+  --color-purple-soft: color-mix(in oklab, var(--purple) 15%, transparent);
+  --color-purple-soft-foreground: var(--purple);
+  --color-purple-soft-hover: color-mix(in oklab, var(--purple) 20%, transparent);
+
+  /* Teal — links, platforms, external resources */
+  --color-teal: var(--teal);
+  --color-teal-foreground: var(--teal-foreground);
+  --color-teal-soft: color-mix(in oklab, var(--teal) 15%, transparent);
+  --color-teal-soft-foreground: var(--teal);
+  --color-teal-soft-hover: color-mix(in oklab, var(--teal) 20%, transparent);
+
+  /* Pink — notifications, badges, user highlights */
+  --color-pink: var(--pink);
+  --color-pink-foreground: var(--pink-foreground);
+  --color-pink-soft: color-mix(in oklab, var(--pink) 15%, transparent);
+  --color-pink-soft-foreground: var(--pink);
+  --color-pink-soft-hover: color-mix(in oklab, var(--pink) 20%, transparent);
+}
+
+/* ── AI gradient text utility ────────────────────────────────────────────── */
+@utility ai-gradient-text {
+  background: linear-gradient(135deg, #1F4E8C 0%, #22C55E 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── HeroUI component overrides ──────────────────────────────────────────── */
+.card {
+  box-shadow: none;
+}
+
+/* ── Base styles ─────────────────────────────────────────────────────────── */
+html {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--surface-secondary); /* web canvas */
+}
