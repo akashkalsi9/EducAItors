@@ -1,57 +1,36 @@
 /**
- * ValidationRunning
+ * ValidationRunning — v2
  *
- * Screen 3.2 / 5.2 — Validation Running
- * Shared implementation for /submit/validating and /fix/validating.
+ * Screen 3.2 / 5.2 — Step-by-step validation progress.
+ * Shows a checklist of what the system is doing: checking files, OCR, links, rubric mapping.
+ * Each step completes sequentially with staggered timing.
+ * Auto-navigates to /result/analysis after all steps complete.
  *
- * Persona: ALL personas see this screen.
- * Riya (anxious — needs calm not alarm)
- * Arjun (impatient — needs forward motion)
- * Sunita (confused — needs simple reassurance)
- * Karan (deadline pressure — needs to know it's working)
- *
- * This screen's only job: make the 4.4-second wait feel safe.
- * Not fast. Not detailed. Not informative. Safe.
+ * Demo: triple-tap bottom zones to set result type (ready/warning/blocker).
  *
  * Props:
- *   isResubmission — boolean. Shows amber resubmission note above main copy.
+ *   isResubmission — boolean. Shows amber note if true.
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShieldCheck, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
-import PulseRingAnimation from './ui/PulseRingAnimation'
-import AnimatedDots from './ui/AnimatedDots'
+import { Loader2, CheckCircle2, FileSearch, ScanText, Link2, Layers, Sparkles } from 'lucide-react'
+import { Card, CardContent } from '@heroui/react'
 import { mockAssignment } from '../data/mock-assignment'
 
-// ─── Result route map ──────────────────────────────────────────────────────────
-const RESULT_ROUTES = {
-  ready:   '/result/analysis',
-  warning: '/result/analysis',
-  blocker: '/result/analysis',
-}
+// ─── Validation steps ─────────────────────────────────────────────────────────
+const STEPS = [
+  { id: 'files',    label: 'Checking uploaded files',  Icon: FileSearch, completeAt: 1000  },
+  { id: 'ocr',      label: 'Reading document (OCR)',   Icon: ScanText,   completeAt: 2500  },
+  { id: 'links',    label: 'Verifying links',          Icon: Link2,      completeAt: 3500  },
+  { id: 'rubric',   label: 'Mapping to rubric',        Icon: Layers,     completeAt: 5000  },
+  { id: 'analysis', label: 'Generating analysis',      Icon: Sparkles,   completeAt: 6000  },
+]
 
-// ─── Result icon config ────────────────────────────────────────────────────────
-const RESULT_ICONS = {
-  ready: {
-    Icon:  CheckCircle2,
-    color: 'text-success',
-    size:  'w-7 h-7',
-  },
-  warning: {
-    Icon:  AlertCircle,
-    color: 'text-warning',
-    size:  'w-7 h-7',
-  },
-  blocker: {
-    Icon:  XCircle,
-    color: 'text-danger',
-    size:  'w-7 h-7',
-  },
-}
+const NAVIGATE_AT = 6800 // ms — navigate after brief pause post-completion
 
-// ─── Default demo result (most interesting for pitch) ─────────────────────────
+// ─── Result route ─────────────────────────────────────────────────────────────
 const DEFAULT_DEMO_RESULT = 'warning'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,224 +38,203 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
   const navigate = useNavigate()
   const { state: routeState } = useLocation()
 
-  // Support both prop and route state for isResubmission
   const isResubmission = isResubmissionProp || (routeState?.isResubmission ?? false)
-
-  // Pass submission state forward through the navigation chain
   const primaryFile  = routeState?.primaryFile  ?? null
   const artifactData = routeState?.artifactData ?? null
   const linkStatuses = routeState?.linkStatuses ?? {}
-
   const { title } = mockAssignment
 
-  // ── Phase state ────────────────────────────────────────────────────────────
-  // 'active'    — waiting, pulse rings running, everything breathing
-  // 'resolving' — icon swap, rings slow, result revealed
-  // 'leaving'   — page fades out
-  const [phase, setPhase] = useState('active')
+  // ── Step completion tracking ──────────────────────────────────────────────
+  const [completedSteps, setCompletedSteps] = useState(new Set())
+  const [activeStepIndex, setActiveStepIndex] = useState(0)
 
-  // ── Result icon shown at resolve moment ───────────────────────────────────
-  const [resultIcon, setResultIcon] = useState(null)
-
-  // ── Demo control state ────────────────────────────────────────────────────
+  // ── Demo control ──────────────────────────────────────────────────────────
   const demoResultRef   = useRef(DEFAULT_DEMO_RESULT)
   const tapCountRef     = useRef({ left: 0, center: 0, right: 0 })
   const tapTimerRef     = useRef({ left: null, center: null, right: null })
   const [demoIndicator, setDemoIndicator] = useState(null)
   const demoIndicatorTimerRef = useRef(null)
 
-  // ── Main timer sequence ────────────────────────────────────────────────────
+  // ── Progress percentage ───────────────────────────────────────────────────
+  const progress = useMemo(() => {
+    if (completedSteps.size === 0) return 5 // show a sliver immediately
+    return Math.round((completedSteps.size / STEPS.length) * 100)
+  }, [completedSteps])
+
+  // ── Timer sequence ────────────────────────────────────────────────────────
   useEffect(() => {
-    // 3000ms — shield fades out, result icon fades in, rings slow
-    const t1 = setTimeout(() => {
-      setPhase('resolving')
-      setResultIcon(demoResultRef.current)
-    }, 3000)
+    const timers = []
 
-    // 4100ms — page begins fading out
-    const t2 = setTimeout(() => {
-      setPhase('leaving')
-    }, 4100)
+    // Schedule each step completion
+    STEPS.forEach((step, index) => {
+      // Activate step slightly before completion
+      const activateAt = index === 0 ? 100 : STEPS[index - 1].completeAt + 200
+      timers.push(setTimeout(() => setActiveStepIndex(index), activateAt))
 
-    // 4400ms — navigate to result screen
-    const t3 = setTimeout(() => {
-      navigate(
-        RESULT_ROUTES[demoResultRef.current] ?? RESULT_ROUTES.warning,
-        { state: { primaryFile, artifactData, linkStatuses, isResubmission, readiness: demoResultRef.current } }
-      )
-    }, 4400)
+      // Complete step
+      timers.push(setTimeout(() => {
+        setCompletedSteps(prev => new Set([...prev, step.id]))
+      }, step.completeAt))
+    })
 
-    return () => {
-      clearTimeout(t1)
-      clearTimeout(t2)
-      clearTimeout(t3)
-    }
+    // Navigate after all steps complete
+    timers.push(setTimeout(() => {
+      navigate('/result/analysis', {
+        state: { primaryFile, artifactData, linkStatuses, isResubmission, readiness: demoResultRef.current },
+      })
+    }, NAVIGATE_AT))
+
+    return () => timers.forEach(clearTimeout)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Hidden demo triple-tap handler ────────────────────────────────────────
+  // ── Demo triple-tap handler ───────────────────────────────────────────────
   function handleDemoTap(zone) {
     tapCountRef.current[zone] = (tapCountRef.current[zone] || 0) + 1
-
     clearTimeout(tapTimerRef.current[zone])
-    tapTimerRef.current[zone] = setTimeout(() => {
-      tapCountRef.current[zone] = 0
-    }, 1000)
+    tapTimerRef.current[zone] = setTimeout(() => { tapCountRef.current[zone] = 0 }, 1000)
 
     if (tapCountRef.current[zone] >= 3) {
       tapCountRef.current[zone] = 0
       const mapping = { left: 'ready', center: 'warning', right: 'blocker' }
       demoResultRef.current = mapping[zone]
-
-      // Show brief indicator
       setDemoIndicator(mapping[zone])
       clearTimeout(demoIndicatorTimerRef.current)
       demoIndicatorTimerRef.current = setTimeout(() => setDemoIndicator(null), 2000)
     }
   }
 
-  // ── Determine center icon ──────────────────────────────────────────────────
-  const iconKey = phase === 'resolving' ? (resultIcon ?? 'shield') : 'shield'
-  const resultConfig = resultIcon ? RESULT_ICONS[resultIcon] : null
+  // ── Step status ───────────────────────────────────────────────────────────
+  function getStepStatus(step, index) {
+    if (completedSteps.has(step.id)) return 'completed'
+    if (index === activeStepIndex) return 'active'
+    return 'pending'
+  }
 
-  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-surface-secondary">
+    <div className="min-h-screen bg-surface-secondary flex items-center justify-center px-8 lg:px-10 py-8">
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: phase === 'leaving' ? 0 : 1 }}
-        transition={{ duration: 0.3 }}
-        className="relative w-full bg-white min-h-screen flex flex-col items-center justify-center px-8 lg:px-10 py-8 max-w-2xl mx-auto"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="w-full max-w-md"
       >
+        <Card className="rounded-2xl border border-border p-0 gap-0">
+          <CardContent className="p-8 gap-0">
 
-        {/* ── ELEMENT 1: Assignment context (absolute top) ── */}
-        <motion.p
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 0.8, y: 0 }}
-          transition={{ duration: 0.3, ease: 'easeOut', delay: 0.1 }}
-          className="absolute top-0 left-0 right-0 text-[13px] font-medium text-muted text-center px-6 pt-5"
-          aria-label={`Validating: ${title}`}
-        >
-          {title}
-        </motion.p>
+            {/* ── Spinner icon ──────────────────────────────────────────── */}
+            <div className="flex justify-center mb-5">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                className="w-14 h-14 rounded-full bg-accent flex items-center justify-center"
+              >
+                <Loader2 className="w-7 h-7 text-white" strokeWidth={2.5} aria-hidden="true" />
+              </motion.div>
+            </div>
 
-        {/* ── MAIN CONTENT (centered) ── */}
-        <div className="flex flex-col items-center">
+            {/* ── Headline ──────────────────────────────────────────────── */}
+            <h1 className="text-[20px] font-bold text-foreground text-center tracking-tight">
+              Validating your submission...
+            </h1>
+            <p className="text-[14px] text-muted text-center mt-1.5">
+              This usually takes a few seconds
+            </p>
 
-          {/* ── Resubmission note (amber, left-border flex-strip) ── */}
-          {isResubmission && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: 'easeOut', delay: 0.5 }}
-              className="mb-8 w-full max-w-[320px] rounded-xl bg-white border border-border overflow-hidden"
-            >
-              <div className="flex">
-                <div
-                  className="w-[3px] bg-warning shrink-0 self-stretch"
-                  aria-hidden="true"
-                />
-                <p className="flex-1 px-4 py-3 text-[13px] font-medium text-warning leading-[1.5]">
+            {/* ── Resubmission note ─────────────────────────────────────── */}
+            {isResubmission && (
+              <div className="mt-4 p-3 rounded-lg bg-warning-soft">
+                <p className="text-[13px] text-warning font-medium text-center">
                   We'll check everything again — your other elements should still pass.
                 </p>
               </div>
-            </motion.div>
-          )}
+            )}
 
-          {/* ── ELEMENT 2: Pulse ring animation + icon ── */}
-          <motion.div
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.2 }}
-            className="relative flex items-center justify-center"
-          >
-            {/* Soft radial glow behind animation */}
-            <div
-              className="absolute w-[300px] h-[300px] rounded-full pointer-events-none"
-              style={{ background: 'radial-gradient(circle, rgba(31,78,140,0.05) 0%, transparent 70%)' }}
-              aria-hidden="true"
-            />
-
-            {/* Pulse rings + center circle */}
-            <PulseRingAnimation
-              ringCount={3}
-              interval={0.7}
-              slow={phase === 'resolving'}
-            >
-              {/* Center circle */}
-              <div className="w-[72px] h-[72px] rounded-full bg-white border-2 border-border flex items-center justify-center relative z-10">
-                <AnimatePresence mode="wait" initial={false}>
-                  {phase !== 'resolving' ? (
-                    /* Shield — stable, confident, checking */
-                    <motion.div
-                      key="shield"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ShieldCheck
-                        className="w-7 h-7 text-purple"
-                        strokeWidth={1.75}
-                        aria-hidden="true"
-                      />
-                    </motion.div>
-                  ) : (
-                    /* Result icon — the emotional reveal */
-                    <motion.div
-                      key={resultIcon ?? 'shield'}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{ duration: 0.3, ease: 'easeOut' }}
-                    >
-                      {resultConfig && (
-                        <resultConfig.Icon
-                          className={`${resultConfig.size} ${resultConfig.color}`}
-                          strokeWidth={2}
-                          aria-hidden="true"
-                        />
+            {/* ── Step checklist ─────────────────────────────────────────── */}
+            <div className="mt-6 flex flex-col gap-0.5">
+              {STEPS.map((step, index) => {
+                const status = getStepStatus(step, index)
+                return (
+                  <motion.div
+                    key={step.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.15 }}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-300 ${
+                      status === 'active' ? 'bg-surface-secondary' : ''
+                    }`}
+                  >
+                    {/* Icon */}
+                    <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                      {status === 'completed' ? (
+                        <motion.div
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                        >
+                          <CheckCircle2 className="w-5 h-5 text-success" strokeWidth={2} aria-hidden="true" />
+                        </motion.div>
+                      ) : status === 'active' ? (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        >
+                          <Loader2 className="w-5 h-5 text-purple" strokeWidth={2} aria-hidden="true" />
+                        </motion.div>
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border-2 border-border" />
                       )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    </div>
+
+                    {/* Label */}
+                    <span className={`text-[14px] flex-1 transition-colors duration-300 ${
+                      status === 'completed' ? 'text-foreground font-medium'
+                      : status === 'active'  ? 'text-purple font-semibold'
+                      : 'text-muted font-normal'
+                    }`}>
+                      {step.label}
+                    </span>
+
+                    {/* Check mark on right */}
+                    {status === 'completed' && (
+                      <motion.span
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="text-success text-sm font-semibold"
+                      >
+                        ✓
+                      </motion.span>
+                    )}
+                  </motion.div>
+                )
+              })}
+            </div>
+
+            {/* ── Progress bar ───────────────────────────────────────────── */}
+            <div className="mt-6">
+              <div className="w-full h-2 bg-border rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-accent rounded-full"
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                />
               </div>
-            </PulseRingAnimation>
-          </motion.div>
+            </div>
 
-          {/* ── ELEMENT 3: Primary copy ── */}
-          <motion.h1
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: 'easeOut', delay: 0.6 }}
-            className="text-[20px] font-semibold text-foreground text-center tracking-[-0.2px] mt-10"
-          >
-            Checking your submission…
-          </motion.h1>
+            {/* ── Reassurance ────────────────────────────────────────────── */}
+            <div className="mt-5 text-center">
+              <p className="text-[13px] text-muted">
+                Your work has been received.
+              </p>
+              <p className="text-[12px] text-muted mt-0.5">
+                Do not close this screen.
+              </p>
+            </div>
 
-          {/* ── ELEMENT 4: Secondary copy ── */}
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: 'easeOut', delay: 0.75 }}
-            className="text-[14px] text-muted text-center mt-2.5"
-          >
-            This usually takes a few seconds.
-          </motion.p>
+          </CardContent>
+        </Card>
 
-          {/* ── ELEMENT 5: Animated dots ── */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: 0.9 }}
-            className="mt-8"
-          >
-            <AnimatedDots count={3} interval={0.4} />
-          </motion.div>
-
-        </div>
-        {/* end main content */}
-
-        {/* ── Demo indicator (brief, fades away) ── */}
+        {/* ── Demo indicator ──────────────────────────────────────────── */}
         <AnimatePresence>
           {demoIndicator && (
             <motion.p
@@ -284,60 +242,20 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="absolute bottom-[80px] left-0 right-0 text-[10px] font-normal text-muted/60 text-center pointer-events-none"
+              className="text-[10px] text-muted/60 text-center mt-3"
             >
               → {demoIndicator.charAt(0).toUpperCase() + demoIndicator.slice(1)}
             </motion.p>
           )}
         </AnimatePresence>
-
-        {/* ── ELEMENT 6: Reassurance (absolute bottom) ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: 'easeOut', delay: 1.1 }}
-          className="absolute bottom-0 left-0 right-0 px-6 pb-12 flex flex-col items-center"
-        >
-          <p className="text-[13px] font-medium text-muted text-center">
-            Your work has been received.
-          </p>
-          <p className="text-[12px] text-muted text-center mt-1">
-            Do not close this screen.
-          </p>
-        </motion.div>
-
-        {/* ── Hidden demo triple-tap zones ── */}
-        {/* Invisible — bottom third of screen, three zones */}
-        <div
-          className="absolute bottom-0 left-0 right-0 flex"
-          style={{ height: '80px' }}
-          aria-hidden="true"
-        >
-          <button
-            type="button"
-            className="flex-1 opacity-0 cursor-default"
-            onClick={() => handleDemoTap('left')}
-            tabIndex={-1}
-            aria-hidden="true"
-          />
-          <button
-            type="button"
-            className="flex-1 opacity-0 cursor-default"
-            onClick={() => handleDemoTap('center')}
-            tabIndex={-1}
-            aria-hidden="true"
-          />
-          <button
-            type="button"
-            className="flex-1 opacity-0 cursor-default"
-            onClick={() => handleDemoTap('right')}
-            tabIndex={-1}
-            aria-hidden="true"
-          />
-        </div>
-
       </motion.div>
+
+      {/* ── Hidden demo triple-tap zones ───────────────────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 flex h-20" aria-hidden="true">
+        <button type="button" className="flex-1 opacity-0" onClick={() => handleDemoTap('left')} tabIndex={-1} />
+        <button type="button" className="flex-1 opacity-0" onClick={() => handleDemoTap('center')} tabIndex={-1} />
+        <button type="button" className="flex-1 opacity-0" onClick={() => handleDemoTap('right')} tabIndex={-1} />
+      </div>
     </div>
   )
 }

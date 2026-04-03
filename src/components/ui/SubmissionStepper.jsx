@@ -14,11 +14,10 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const STEPS = [
-  { id: 1, label: 'Upload',    route: '/submit/upload'      },
-  { id: 2, label: 'Artifacts', route: '/submit/artifacts'   },
-  { id: 3, label: 'Preview',   route: '/submit/ocr-preview' },
-  { id: 4, label: 'Links',     route: '/submit/links'       },
-  { id: 5, label: 'Review',    route: '/submit/review'      },
+  { id: 1, label: 'Upload',    route: '/submit/upload'    },
+  { id: 2, label: 'Artifacts', route: '/submit/artifacts' },
+  { id: 3, label: 'Links',     route: '/submit/links'     },
+  { id: 4, label: 'Review',    route: '/submit/review'    },
 ]
 
 export default function SubmissionStepper({ currentStep = 1, stepNote = null }) {

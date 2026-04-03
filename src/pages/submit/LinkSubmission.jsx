@@ -113,7 +113,7 @@ export default function LinkSubmission() {
       {/* ════════════════════════════════════════════════════════════════════
           SCROLLABLE AREA
           ════════════════════════════════════════════════════════════════════ */}
-      <SubmissionStepper currentStep={4} />
+      <SubmissionStepper currentStep={3} />
       <div className="flex-1 bg-surface-secondary overflow-y-auto pb-20">
         <div className="px-8 lg:px-10 py-8">
         <div className="max-w-4xl mx-auto space-y-6">

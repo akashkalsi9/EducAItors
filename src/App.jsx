@@ -6,7 +6,7 @@ import Orientation from './pages/Orientation'
 import PrimaryUpload from './pages/submit/PrimaryUpload'
 import ArtifactUpload from './pages/submit/ArtifactUpload'
 import LinkSubmission from './pages/submit/LinkSubmission'
-import OCRPreviewPage from './pages/submit/OCRPreviewPage'
+// import OCRPreviewPage from './pages/submit/OCRPreviewPage'  // OCR moved to validation step
 import SubmissionReview from './pages/submit/SubmissionReview'
 import Validating from './pages/validation/Validating'
 // import ValidationReady from './pages/validation/ValidationReady'
@@ -34,7 +34,7 @@ export default function App() {
         <Route path="/submit/upload" element={<PrimaryUpload />} />
         <Route path="/submit/artifacts" element={<ArtifactUpload />} />
         <Route path="/submit/links" element={<LinkSubmission />} />
-        <Route path="/submit/ocr-preview" element={<OCRPreviewPage />} />
+        {/* OCR preview removed — OCR processing now happens during validation */}
         <Route path="/submit/review" element={<SubmissionReview />} />
 
         {/* Screens 3.x — Validation & Decision */}

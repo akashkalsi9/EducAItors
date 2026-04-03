@@ -117,16 +117,9 @@ export default function ArtifactUpload() {
   // ── Navigation ─────────────────────────────────────────────────────────────
   function handleContinue() {
     if (!allRequiredDone) return
-    const ocrArtifact = mockAssignment.requiredArtifacts.find((a) => a.requiresOCR)
-    if (ocrArtifact) {
-      navigate('/submit/ocr-preview', {
-        state: { primaryFile, artifactData: slotData, ocrTargetFile: ocrArtifact },
-      })
-    } else {
-      navigate('/submit/links', {
-        state: { primaryFile, artifactData: slotData },
-      })
-    }
+    navigate('/submit/links', {
+      state: { primaryFile, artifactData: slotData },
+    })
   }
 
   // ─────────────────────────────────────────────────────────────────────────

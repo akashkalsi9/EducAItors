@@ -113,7 +113,7 @@ export default function SubmissionReview() {
       {/* ════════════════════════════════════════════════════════════════════
           SCROLLABLE AREA
           ════════════════════════════════════════════════════════════════════ */}
-      <SubmissionStepper currentStep={5} />
+      <SubmissionStepper currentStep={4} />
       <div className="flex-1 bg-surface-secondary overflow-y-auto pb-0">
         <div className="px-8 lg:px-10 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
