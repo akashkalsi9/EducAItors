@@ -125,7 +125,7 @@ export default function LinkSubmission() {
           transition={{ duration: 0.3, ease: 'easeOut', delay: 0.1 }}
         >
         <Card className="rounded-xl border border-border p-0">
-        <CardContent className="px-6 lg:px-8 pt-6 lg:pt-8 pb-5">
+        <CardContent className="p-6 lg:p-8">
           <h1 className="text-[22px] font-bold text-foreground tracking-tight leading-tight">
             Add your external links
           </h1>
@@ -143,7 +143,7 @@ export default function LinkSubmission() {
           transition={{ duration: 0.3, ease: 'easeOut', delay: 0.2 }}
         >
         <Card className="rounded-xl border border-border p-0">
-        <CardContent className="px-6 lg:px-8 pt-4 pb-2">
+        <CardContent className="p-6 lg:p-8">
           {/* Required label */}
           <p className="text-xs font-bold text-danger uppercase tracking-[0.08em] mb-3">
             Required links
@@ -200,7 +200,7 @@ export default function LinkSubmission() {
           transition={{ duration: 0.3, ease: 'easeOut', delay: 0.5 }}
         >
         <Card className="rounded-xl border border-border p-0">
-        <CardContent className="px-6 lg:px-8 pt-3 pb-2">
+        <CardContent className="p-6 lg:p-8">
           {/* Seeded optional links from mock data */}
           {mockAssignment.optionalLinks.map((link, i) => (
             <motion.div

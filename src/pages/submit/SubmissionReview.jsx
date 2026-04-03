@@ -127,7 +127,7 @@ export default function SubmissionReview() {
           transition={{ duration: 0.3, ease: 'easeOut', delay: 0.1 }}
         >
         <Card className="rounded-xl border border-border p-0">
-        <CardContent className="px-6 lg:px-8 pt-6 lg:pt-8 pb-5">
+        <CardContent className="p-6 lg:p-8">
           <h1 className="text-[22px] font-bold text-foreground tracking-tight leading-tight">
             Ready to submit?
           </h1>
@@ -252,7 +252,7 @@ export default function SubmissionReview() {
           transition={{ duration: 0.3, delay: 0.7 }}
         >
         <Card className="rounded-xl border border-border p-0">
-        <CardContent className="px-6 lg:px-8 pt-4 pb-5">
+        <CardContent className="p-6 lg:p-8">
           <p className="text-[13px] font-semibold text-foreground mb-3">
             Submission details
           </p>
