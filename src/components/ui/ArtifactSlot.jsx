@@ -495,14 +495,27 @@ export default function ArtifactSlot({
       >
         {renderHeader()}
 
-        {/* Error message row */}
+        {/* Error message row — split into problem + fix suggestion */}
         <div className="mt-2 flex items-start gap-2">
           <XCircle
             className="w-4 h-4 text-danger shrink-0 mt-[1px]"
             strokeWidth={2}
             aria-hidden="true"
           />
-          <p className="text-[12px] text-danger leading-relaxed">{errorMessage}</p>
+          <div className="text-[12px] leading-relaxed">
+            {(() => {
+              const dotIdx = errorMessage?.indexOf('. ')
+              if (dotIdx > 0) {
+                return (
+                  <>
+                    <p className="font-semibold text-danger">{errorMessage.slice(0, dotIdx + 1)}</p>
+                    <p className="text-muted mt-0.5">{errorMessage.slice(dotIdx + 2)}</p>
+                  </>
+                )
+              }
+              return <p className="text-danger">{errorMessage}</p>
+            })()}
+          </div>
         </div>
 
         {/* Retry drop zone */}

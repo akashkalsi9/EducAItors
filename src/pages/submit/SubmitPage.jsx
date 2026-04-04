@@ -34,6 +34,54 @@ const VALID_EXTS = {
   handwritten: ['.jpg', '.jpeg', '.png'],
 }
 
+// ─── File size limits (bytes) — matches TYPE_INFO maxSize in ArtifactSlot ────
+const MAX_SIZES = {
+  pdf:         50  * 1024 * 1024,
+  docx:        20  * 1024 * 1024,
+  xlsx:        20  * 1024 * 1024,
+  pptx:        100 * 1024 * 1024,
+  image:       10  * 1024 * 1024,
+  handwritten: 10  * 1024 * 1024,
+}
+
+const MAX_SIZE_LABELS = {
+  pdf: '50MB', docx: '20MB', xlsx: '20MB', pptx: '100MB', image: '10MB', handwritten: '10MB',
+}
+
+// ─── Contextual error messages per type + condition ──────────────────────────
+const ERROR_MESSAGES = {
+  pdf: {
+    format:  "This doesn't look like a PDF. Save your document as .pdf and try again.",
+    size:    "This PDF is over 50MB. Try compressing images in the document or removing unused pages.",
+    network: "Something went wrong uploading your PDF. Check your connection and try again.",
+  },
+  docx: {
+    format:  "This doesn't look like a Word document. Export your file as .docx and try again.",
+    size:    "This document is over 20MB. Try compressing images or splitting into smaller files.",
+    network: "Something went wrong uploading your document. Check your connection and try again.",
+  },
+  xlsx: {
+    format:  "This doesn't look like an Excel file. Export your spreadsheet as .xlsx and try again.",
+    size:    "This spreadsheet is over 20MB. Try removing unused sheets or embedded images.",
+    network: "Something went wrong uploading your spreadsheet. Check your connection and try again.",
+  },
+  pptx: {
+    format:  "This doesn't look like a PowerPoint file. Export your slides as .pptx and try again.",
+    size:    "This presentation is over 100MB. Try compressing images or removing unused slides.",
+    network: "Something went wrong uploading your presentation. Check your connection and try again.",
+  },
+  image: {
+    format:  "This doesn't look like an image. Please upload a JPG or PNG file.",
+    size:    "This image is over 10MB. Try reducing the resolution or saving as JPG.",
+    network: "Something went wrong uploading your image. Check your connection and try again.",
+  },
+  handwritten: {
+    format:  "This doesn't look like a photo. Please upload a JPG or PNG image of your handwritten work.",
+    size:    "This image is over 10MB. Try reducing the resolution or cropping to just your handwritten page.",
+    network: "Something went wrong uploading your photo. Check your connection and try again.",
+  },
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function SubmitPage() {
   const navigate = useNavigate()
@@ -89,11 +137,27 @@ export default function SubmitPage() {
     const ext = '.' + file.name.split('.').pop().toLowerCase()
     const validMimes = VALID_MIMES[artifact.type] ?? []
     const validExts = VALID_EXTS[artifact.type] ?? []
+    const msgs = ERROR_MESSAGES[artifact.type] ?? ERROR_MESSAGES.image
 
+    // 1. Format validation
     if (!validMimes.includes(file.type) && !validExts.includes(ext)) {
       updateSlot(artifact.id, {
         state: 'error',
-        errorMessage: `Wrong file type. Please upload a ${artifact.type.toUpperCase()} file.`,
+        fileName: file.name,
+        fileSize: formatFileSize(file.size),
+        errorMessage: msgs.format,
+      })
+      return
+    }
+
+    // 2. Size validation
+    const maxBytes = MAX_SIZES[artifact.type]
+    if (maxBytes && file.size > maxBytes) {
+      updateSlot(artifact.id, {
+        state: 'error',
+        fileName: file.name,
+        fileSize: formatFileSize(file.size),
+        errorMessage: msgs.size,
       })
       return
     }
@@ -273,57 +337,68 @@ export default function SubmitPage() {
                   <p className="text-[10px] font-semibold text-muted/40 uppercase tracking-widest mb-2">Demo: Force file status</p>
                   <div className="flex flex-col gap-2">
                     {requiredArtifacts.map(artifact => {
+                      const msgs = ERROR_MESSAGES[artifact.type] ?? ERROR_MESSAGES.image
+                      const demoFileName = `${artifact.name}.${artifact.type === 'handwritten' ? 'jpg' : artifact.type}`
                       const FILE_DEMO_STATES = [
-                        { key: 'empty',     label: 'Empty' },
-                        { key: 'uploading', label: 'Uploading' },
-                        { key: 'confirmed', label: 'Uploaded' },
-                        { key: 'error',     label: 'Error' },
+                        { key: 'empty',        label: 'Empty' },
+                        { key: 'uploading',    label: 'Uploading' },
+                        { key: 'confirmed',    label: 'Uploaded' },
+                        { key: 'err-format',   label: 'Format Err' },
+                        { key: 'err-size',     label: 'Size Err' },
+                        { key: 'err-network',  label: 'Network Err' },
                       ]
+                      const currentState = slotData[artifact.id]?.state
+                      const currentMsg   = slotData[artifact.id]?.errorMessage
                       return (
                         <div key={artifact.id} className="flex items-center gap-2">
                           <span className="text-[11px] text-muted w-36 truncate shrink-0">{artifact.name}</span>
-                          <div className="flex gap-1">
-                            {FILE_DEMO_STATES.map(({ key, label }) => (
-                              <button
-                                key={key}
-                                type="button"
-                                onClick={() => {
-                                  if (key === 'confirmed') {
-                                    updateSlot(artifact.id, {
-                                      state: 'confirmed', progress: 100,
-                                      fileName: `${artifact.name}.${artifact.type === 'handwritten' ? 'jpg' : artifact.type}`,
-                                      fileSize: '1.2 MB', errorMessage: null,
-                                    })
-                                    if (artifact.requiresOCR) handleOcrComplete(artifact.id, 'high')
-                                  } else if (key === 'uploading') {
-                                    updateSlot(artifact.id, {
-                                      state: 'uploading', progress: 45,
-                                      fileName: `${artifact.name}.${artifact.type === 'handwritten' ? 'jpg' : artifact.type}`,
-                                      fileSize: '1.2 MB', errorMessage: null,
-                                    })
-                                  } else if (key === 'error') {
-                                    updateSlot(artifact.id, {
-                                      state: 'error', progress: 0,
-                                      fileName: `${artifact.name}.${artifact.type === 'handwritten' ? 'jpg' : artifact.type}`,
-                                      fileSize: '1.2 MB', errorMessage: 'Upload failed — please try again',
-                                    })
-                                  } else {
-                                    updateSlot(artifact.id, {
-                                      state: 'empty', progress: 0,
-                                      fileName: null, fileSize: null, errorMessage: null,
-                                    })
-                                    if (artifact.requiresOCR) handleOcrComplete(artifact.id, null)
-                                  }
-                                }}
-                                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                                  slotData[artifact.id]?.state === key
-                                    ? 'bg-accent text-white'
-                                    : 'bg-surface-secondary text-muted hover:text-foreground'
-                                }`}
-                              >
-                                {label}
-                              </button>
-                            ))}
+                          <div className="flex gap-1 flex-wrap">
+                            {FILE_DEMO_STATES.map(({ key, label }) => {
+                              const isErrorKey = key.startsWith('err-')
+                              const errorType  = key.replace('err-', '')
+                              const isActive   = isErrorKey
+                                ? currentState === 'error' && currentMsg === msgs[errorType]
+                                : currentState === key
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => {
+                                    if (key === 'confirmed') {
+                                      updateSlot(artifact.id, {
+                                        state: 'confirmed', progress: 100,
+                                        fileName: demoFileName, fileSize: '1.2 MB', errorMessage: null,
+                                      })
+                                      if (artifact.requiresOCR) handleOcrComplete(artifact.id, 'high')
+                                    } else if (key === 'uploading') {
+                                      updateSlot(artifact.id, {
+                                        state: 'uploading', progress: 45,
+                                        fileName: demoFileName, fileSize: '1.2 MB', errorMessage: null,
+                                      })
+                                    } else if (isErrorKey) {
+                                      updateSlot(artifact.id, {
+                                        state: 'error', progress: 0,
+                                        fileName: demoFileName, fileSize: '1.2 MB',
+                                        errorMessage: msgs[errorType],
+                                      })
+                                    } else {
+                                      updateSlot(artifact.id, {
+                                        state: 'empty', progress: 0,
+                                        fileName: null, fileSize: null, errorMessage: null,
+                                      })
+                                      if (artifact.requiresOCR) handleOcrComplete(artifact.id, null)
+                                    }
+                                  }}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                                    isActive
+                                      ? 'bg-accent text-white'
+                                      : 'bg-surface-secondary text-muted hover:text-foreground'
+                                  }`}
+                                >
+                                  {label}
+                                </button>
+                              )
+                            })}
                           </div>
                         </div>
                       )

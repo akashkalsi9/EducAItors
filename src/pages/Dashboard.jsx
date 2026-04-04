@@ -8,7 +8,6 @@ import {
   Button,
   Card, CardContent,
   Chip,
-  Avatar, AvatarFallback,
   Tabs, Tab, TabList, TabListContainer, TabPanel, TabIndicator, TabSeparator,
 } from '@heroui/react'
 import {
@@ -47,7 +46,6 @@ const STATUS_CHIP = {
 }
 
 // ─── Instructor honorific prefixes ────────────────────────────────────────────
-const PREFIXES = ['dr.', 'prof.', 'mr.', 'ms.', 'mrs.', 'sir']
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -59,12 +57,6 @@ export default function Dashboard() {
   } = mockAssignment
 
   const { days, hours, minutes, totalHours, expired } = useCountdown(deadline)
-
-  // Instructor initial — skip honorific
-  const instructorInitial = instructorName
-    .split(' ')
-    .find((w) => !PREFIXES.includes(w.toLowerCase()))
-    ?.charAt(0).toUpperCase() ?? instructorName.charAt(0)
 
   // Deadline countdown color class
   const countdownColorClass = (expired || totalHours < 2)
@@ -117,6 +109,15 @@ export default function Dashboard() {
             { label: shortTitle },
           ]}
         />
+        <button
+          type="button"
+          onClick={() => setShowOrientation(true)}
+          className="flex items-center gap-1.5 text-[13px] font-medium text-info hover:underline shrink-0 min-h-[44px]"
+          aria-label="Open first-time submission walkthrough"
+        >
+          <Info className="w-4 h-4 shrink-0" strokeWidth={2} aria-hidden="true" />
+          First time? Take the walkthrough
+        </button>
       </div>
 
       {/* ── Page canvas ───────────────────────────────────────────────────── */}
@@ -137,15 +138,13 @@ export default function Dashboard() {
                 <p className="text-[13px] text-muted mt-1.5 leading-snug">
                   Analyse a real-world strategic challenge using Module 3 frameworks and recommend a course of action.
                 </p>
-                <div className="h-px bg-border my-4" />
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Avatar size="sm" variant="soft" color="accent">
-                      <AvatarFallback className="text-xs font-bold">{instructorInitial}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium text-muted">{instructorName}</span>
-                  </div>
+                <div className="mt-2">
                   <Chip variant={sc.variant} color={sc.color} size="sm">{sc.label}</Chip>
+                </div>
+                <div className="h-px bg-border my-4" />
+                <div className="flex items-center gap-2">
+                  <Chip variant="soft" color="accent" size="sm">Prof</Chip>
+                  <span className="text-sm font-medium text-muted">{instructorName}</span>
                 </div>
               </CardContent>
             </Card>
@@ -187,29 +186,6 @@ export default function Dashboard() {
                 </p>
               </CardContent>
             </Card>
-
-            {/* First-timer card */}
-            {submissionStatus === 'not-started' && (
-              <Card className="rounded-xl border border-border p-0">
-                <CardContent className="p-5 flex flex-col items-start gap-0">
-                  <div className="w-10 h-10 rounded-xl bg-info-soft flex items-center justify-center">
-                    <Info className="w-5 h-5 text-info" strokeWidth={2} aria-hidden="true" />
-                  </div>
-                  <p className="text-sm font-bold text-foreground mt-3">First time submitting?</p>
-                  <p className="text-xs text-muted mt-1 leading-snug">
-                    Learn how AI validation works before you start.
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2 px-0 text-info font-semibold"
-                    onPress={() => setShowOrientation(true)}
-                  >
-                    Take the walkthrough →
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Download assignment pack */}
             <Button
