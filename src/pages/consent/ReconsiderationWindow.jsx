@@ -98,7 +98,7 @@ export default function ReconsiderationWindow() {
                       variant="primary"
                       size="lg"
                       className="rounded-lg flex-1 font-semibold"
-                      onPress={() => navigate('/status')}
+                      onPress={() => navigate('/status', { state: { artifactData: routeState?.artifactData, linkStatuses: routeState?.linkStatuses } })}
                     >
                       I'm sure, proceed
                     </Button>
@@ -116,7 +116,7 @@ export default function ReconsiderationWindow() {
                       size="sm"
                       fullWidth
                       className="rounded-lg font-semibold"
-                      onPress={() => navigate('/status')}
+                      onPress={() => navigate('/status', { state: { artifactData: routeState?.artifactData, linkStatuses: routeState?.linkStatuses } })}
                     >
                       Return to dashboard
                     </Button>

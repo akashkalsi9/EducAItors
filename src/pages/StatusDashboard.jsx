@@ -1,10 +1,22 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Button, Card, CardContent, Chip } from '@heroui/react'
 import { CheckCircle2, FileText, Table2, Link2, Monitor, Camera, Download, Layers } from 'lucide-react'
 import InnerPageBar from '../components/ui/InnerPageBar'
 import { mockAssignment } from '../data/mock-assignment'
 
-const SUBMITTED_ITEMS = [
+// ─── Icon config per artifact type ────────────────────────────────────────────
+const TYPE_ICON = {
+  pdf:         { Icon: FileText, iconBg: 'bg-accent-soft',  iconColor: 'text-accent'  },
+  docx:        { Icon: FileText, iconBg: 'bg-accent-soft',  iconColor: 'text-accent'  },
+  xlsx:        { Icon: Table2,   iconBg: 'bg-teal-soft',    iconColor: 'text-teal'    },
+  pptx:        { Icon: Monitor,  iconBg: 'bg-pink-soft',    iconColor: 'text-pink'    },
+  image:       { Icon: Camera,   iconBg: 'bg-purple-soft',  iconColor: 'text-purple'  },
+  handwritten: { Icon: Camera,   iconBg: 'bg-purple-soft',  iconColor: 'text-purple'  },
+}
+const LINK_ICON = { Icon: Link2, iconBg: 'bg-teal-soft', iconColor: 'text-teal' }
+
+// Hardcoded fallback (when no route state)
+const FALLBACK_ITEMS = [
   { name: 'Business Case Analysis.pdf', detail: 'PDF · 2.4 MB', Icon: FileText, iconBg: 'bg-accent-soft', iconColor: 'text-accent' },
   { name: 'Financial Model.xlsx', detail: 'XLSX · 840 KB', Icon: Table2, iconBg: 'bg-teal-soft', iconColor: 'text-teal' },
   { name: 'Supporting Document', detail: 'Google Drive link', Icon: Link2, iconBg: 'bg-teal-soft', iconColor: 'text-teal' },
@@ -20,7 +32,34 @@ const NEXT_STEPS = [
 
 export default function StatusDashboard() {
   const navigate = useNavigate()
-  const { title, courseName, deadline } = mockAssignment
+  const { state: routeState } = useLocation()
+  const { title, courseName, deadline, requiredArtifacts, requiredLinks, optionalLinks } = mockAssignment
+
+  // Build submitted items dynamically from route state
+  const artifactData = routeState?.artifactData ?? {}
+  const linkStatuses = routeState?.linkStatuses ?? {}
+  const hasRouteState = Object.keys(artifactData).length > 0
+
+  const submittedItems = []
+  if (hasRouteState) {
+    requiredArtifacts.forEach(a => {
+      if (artifactData[a.id]?.state === 'confirmed') {
+        const cfg = TYPE_ICON[a.type] ?? TYPE_ICON.pdf
+        submittedItems.push({
+          name: artifactData[a.id].fileName ?? a.name,
+          detail: artifactData[a.id].fileSize ? `${a.type.toUpperCase()} · ${artifactData[a.id].fileSize}` : a.type.toUpperCase(),
+          ...cfg,
+        })
+      }
+    })
+    ;[...requiredLinks, ...optionalLinks].forEach(l => {
+      const s = linkStatuses[l.id]
+      if (s === 'accessible' || s === 'acknowledged') {
+        submittedItems.push({ name: l.name, detail: `${l.platform} link`, ...LINK_ICON })
+      }
+    })
+  }
+  const SUBMITTED_ITEMS = hasRouteState && submittedItems.length > 0 ? submittedItems : FALLBACK_ITEMS
 
   const submissionTime = new Date().toLocaleString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric',

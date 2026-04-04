@@ -397,7 +397,7 @@ export default function ArtifactSlot({
                 <CheckCircle2 className="w-3.5 h-3.5 text-success" aria-hidden="true" />
                 <span className="text-[12px] font-semibold text-success">Handwriting is clear — good to go</span>
               </div>
-              <span className="text-[11px] font-medium text-success">Confidence: 94%</span>
+              <span className="text-[11px] font-medium text-success">Readability: 94%</span>
             </div>
             <button
               type="button"
@@ -417,7 +417,7 @@ export default function ArtifactSlot({
                   <AlertTriangle className="w-3.5 h-3.5 text-warning" aria-hidden="true" />
                   <span className="text-[12px] font-semibold text-warning">Some words were unclear</span>
                 </div>
-                <span className="text-[11px] font-medium text-warning">Confidence: 62%</span>
+                <span className="text-[11px] font-medium text-warning">Readability: 62%</span>
               </div>
               <p className="text-[11px] text-muted mt-1.5 leading-snug">
                 We could read most of your handwriting, but some words were unclear.
@@ -455,7 +455,7 @@ export default function ArtifactSlot({
                   <XCircle className="w-3.5 h-3.5 text-danger" aria-hidden="true" />
                   <span className="text-[12px] font-semibold text-danger">Text is difficult to read</span>
                 </div>
-                <span className="text-[11px] font-medium text-danger">Confidence: 28%</span>
+                <span className="text-[11px] font-medium text-danger">Readability: 28%</span>
               </div>
               <p className="text-[11px] text-muted mt-1.5 leading-snug">
                 We couldn't clearly read the text in this document. Please upload a clearer image so we can process your submission.

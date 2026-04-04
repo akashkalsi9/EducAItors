@@ -271,7 +271,7 @@ export default function SubmissionSummary() {
                 className="rounded-lg px-6 font-semibold"
                 isDisabled={!canSubmit}
                 onPress={() => navigate('/consent/reconsideration', {
-                  state: { deadline },
+                  state: { deadline, artifactData, linkStatuses },
                 })}
               >
                 Submit to instructor
