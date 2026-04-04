@@ -60,27 +60,6 @@ export default function Dashboard() {
       <div className="min-h-screen bg-surface-secondary px-8 lg:px-10 py-8">
         <div className="max-w-6xl mx-auto space-y-6">
 
-          {/* ── WELCOME BANNER ─────────────────────────────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <Card className="rounded-xl border border-border p-0 gap-0">
-              <CardContent className="px-6 py-4 gap-0">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-[20px] font-bold text-foreground">
-                    Welcome back, {mockStudent.firstName}
-                  </h1>
-                  <Chip variant="soft" color="accent" size="sm">{mockCourse.currentModule}</Chip>
-                </div>
-                <p className="text-[13px] text-muted mt-0.5">
-                  {mockCourse.name} · {mockCourse.semester}
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
-
           {/* ── TWO-COLUMN LAYOUT ──────────────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -225,28 +204,6 @@ export default function Dashboard() {
                 </Card>
               </motion.div>
 
-              {/* Quick Links */}
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.25 }}
-              >
-                <Card className="rounded-xl border border-border p-0 gap-0">
-                  <div className="px-6 py-4 border-b border-border">
-                    <h2 className="text-[15px] font-bold text-foreground">Quick Links</h2>
-                  </div>
-                  {mockQuickLinks.map((link, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className={`w-full flex items-center justify-between px-6 py-3.5 text-left hover:bg-surface-secondary transition-colors ${i < mockQuickLinks.length - 1 ? 'border-b border-border' : ''}`}
-                    >
-                      <span className="text-[13px] font-medium text-accent">{link.label}</span>
-                      <ExternalLink className="w-3.5 h-3.5 text-muted" strokeWidth={2} aria-hidden="true" />
-                    </button>
-                  ))}
-                </Card>
-              </motion.div>
             </div>
           </div>
         </div>

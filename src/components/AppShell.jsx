@@ -22,9 +22,9 @@ import AppSidebar from './AppSidebar'
 
 // ─── Mobile bottom tab bar items ─────────────────────────────────────────────
 const BOTTOM_TABS = [
-  { id: 'dashboard',   label: 'Dashboard',   Icon: LayoutDashboard, route: '/',             isActive: (p) => p === '/' || p === '/assignment' },
+  { id: 'dashboard',   label: 'Dashboard',   Icon: LayoutDashboard, route: '/',             isActive: (p) => p === '/' || p === '/assignment' || p.startsWith('/submit') || p.startsWith('/result') || p.startsWith('/consent') || p.startsWith('/fix') || p === '/orientation' },
   { id: 'modules',     label: 'Modules',      Icon: FolderOpen,      route: '/status',       isActive: (p) => p.startsWith('/status') },
-  { id: 'assignments', label: 'Assignments',  Icon: BookOpen,        route: '/assignment',   isActive: (p) => p.startsWith('/submit') || p.startsWith('/result') || p.startsWith('/consent') || p.startsWith('/fix') || p === '/orientation' },
+  { id: 'assignments', label: 'Assignments',  Icon: BookOpen,        route: '/assignment',   isActive: () => false },
   { id: 'results',     label: 'Results',      Icon: BarChart2,       route: '/result/ready', isActive: () => false },
   { id: 'tickets',     label: 'Tickets',      Icon: Ticket,          route: '/tickets',      isActive: (p) => p.startsWith('/tickets') },
 ]

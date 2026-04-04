@@ -90,7 +90,7 @@ export default function AssignmentDetail() {
             aria-label="Open first-time submission walkthrough"
           >
             <Info className="w-4 h-4 shrink-0" strokeWidth={2} aria-hidden="true" />
-            Take the walkthrough
+            First time? Take the walkthrough
           </button>
           <div
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 shrink-0 ${

@@ -215,11 +215,14 @@ export default function SubmitPage() {
 
   const showSummary = summaryLinks.length > 0
 
-  // CTA enabled when: main file confirmed + all required artifacts done + all required links resolved + no OCR failures
+  // CTA enabled when: all required done + all links resolved + OCR complete (not low, not still processing)
   const hasOcrFailure = requiredArtifactsList.some(a =>
     a.requiresOCR && ocrResults[a.id] === 'low'
   )
-  const canSubmit = requiredCompleted === requiredTotal && allRequiredLinksResolved && !hasOcrFailure
+  const hasOcrPending = requiredArtifactsList.some(a =>
+    a.requiresOCR && slotData[a.id]?.state === 'confirmed' && !ocrResults[a.id]
+  )
+  const canSubmit = requiredCompleted === requiredTotal && allRequiredLinksResolved && !hasOcrFailure && !hasOcrPending
 
   // ── Demo: fill all fields instantly ──────────────────────────────────────
   function fillDemoData() {
@@ -467,18 +470,6 @@ export default function SubmitPage() {
                     </motion.div>
                   ))}
                 </AnimatePresence>
-
-                {/* Add another link */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onPress={handleAddLink}
-                  className="flex items-center gap-1.5 font-medium text-accent min-h-11 mt-2"
-                  aria-label="Add another optional link"
-                >
-                  <Plus className="w-4 h-4" aria-hidden="true" />
-                  Add another link
-                </Button>
 
                 {/* Link check summary */}
                 {showSummary && (
