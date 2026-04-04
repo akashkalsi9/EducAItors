@@ -6,6 +6,9 @@
 import { Clock } from 'lucide-react'
 import PageBreadcrumb from './PageBreadcrumb'
 import { useCountdown } from '../../hooks/useCountdown'
+import { mockAssignment } from '../../data/mock-assignment'
+
+const assignmentShortTitle = mockAssignment.title.replace(/\s*—.*$/, '').trim()
 
 export default function InnerPageBar({ title, deadline, breadcrumbItems }) {
   const { days, hours, minutes, totalHours, expired } = useCountdown(deadline ?? null)
@@ -32,6 +35,7 @@ export default function InnerPageBar({ title, deadline, breadcrumbItems }) {
 
   const items = breadcrumbItems ?? [
     { label: 'Assignments', href: '/' },
+    { label: assignmentShortTitle, href: '/' },
     { label: title ?? '' },
   ]
 

@@ -7,11 +7,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Button, Card, CardContent } from '@heroui/react'
 import { Plus } from 'lucide-react'
 import InnerPageBar from '../../components/ui/InnerPageBar'
-import UploadZone from '../../components/ui/UploadZone'
+// UploadZone removed — all files use ArtifactSlot
 import ArtifactSlot from '../../components/ui/ArtifactSlot'
 import RequiredCounter from '../../components/ui/RequiredCounter'
 import LinkInputRow from '../../components/ui/LinkInputRow'
 import LinkCheckSummary from '../../components/ui/LinkCheckSummary'
+import ProgressRing from '../../components/ui/ProgressRing'
 import { mockAssignment } from '../../data/mock-assignment'
 import { formatFileSize } from '../../utils/formatters'
 
@@ -38,12 +39,9 @@ export default function SubmitPage() {
   const navigate = useNavigate()
 
   const { title, courseName, deadline, requiredArtifacts, requiredLinks, optionalLinks } = mockAssignment
+  const shortTitle = title.replace(/\s*—.*$/, '').trim()
 
-  // ── Main file state (from PrimaryUpload) ──────────────────────────────────
-  const [confirmedFile, setConfirmedFile] = useState(null)
-  const [zoneState, setZoneState] = useState('empty')
-
-  // ── Artifact state (from ArtifactUpload) ──────────────────────────────────
+  // ── Artifact state ─────────────────────────────────────────────────────────
   const initialSlotData = {}
   requiredArtifacts.forEach(a => {
     initialSlotData[a.id] = { state: 'empty', progress: 0, fileName: null, fileSize: null, errorMessage: null }
@@ -52,6 +50,16 @@ export default function SubmitPage() {
 
   // ── Link state (from LinkSubmission) ──────────────────────────────────────
   const [linkStatuses, setLinkStatuses] = useState({})
+
+  // ── OCR tracking state ───────────────────────────────────────────────────
+  const [ocrResults, setOcrResults] = useState({})
+
+  function handleOcrComplete(artifactId, confidence) {
+    setOcrResults(prev => ({ ...prev, [artifactId]: confidence }))
+  }
+
+  // ── Demo link overrides ──────────────────────────────────────────────────
+  const [demoOverrides, setDemoOverrides] = useState({})
 
   // ── User-added optional links ─────────────────────────────────────────────
   const addedLinkCounter = useRef(10)
@@ -120,10 +128,12 @@ export default function SubmitPage() {
   const requiredTotal = requiredArtifactsList.length
   const requiredCompleted = requiredArtifactsList.filter(a => slotData[a.id]?.state === 'confirmed').length
 
-  const allRequiredLinksResolved = requiredLinks.every(link => {
+  const requiredLinksTotal = requiredLinks.length
+  const requiredLinksCompleted = requiredLinks.filter(link => {
     const s = linkStatuses[link.id]
     return s === 'accessible' || s === 'acknowledged'
-  })
+  }).length
+  const allRequiredLinksResolved = requiredLinksCompleted === requiredLinksTotal
 
   const allLinks = [...requiredLinks, ...optionalLinks, ...userLinks]
 
@@ -141,15 +151,14 @@ export default function SubmitPage() {
 
   const showSummary = summaryLinks.length > 0
 
-  // CTA enabled when: main file confirmed + all required artifacts done + all required links resolved
-  const canSubmit = confirmedFile !== null && requiredCompleted === requiredTotal && allRequiredLinksResolved
+  // CTA enabled when: main file confirmed + all required artifacts done + all required links resolved + no OCR failures
+  const hasOcrFailure = requiredArtifactsList.some(a =>
+    a.requiresOCR && ocrResults[a.id] === 'low'
+  )
+  const canSubmit = requiredCompleted === requiredTotal && allRequiredLinksResolved && !hasOcrFailure
 
   // ── Demo: fill all fields instantly ──────────────────────────────────────
   function fillDemoData() {
-    // Main file
-    setConfirmedFile({ name: 'Business_Case_Analysis.pdf', size: 2457600, type: 'application/pdf' })
-    setZoneState('confirmed')
-
     // All artifacts → confirmed
     const filled = {}
     requiredArtifacts.forEach(a => {
@@ -157,12 +166,22 @@ export default function SubmitPage() {
     })
     setSlotData(filled)
 
-    // All links → accessible
+    // OCR artifacts → high confidence
+    const filledOcr = {}
+    requiredArtifacts.forEach(a => {
+      if (a.requiresOCR) filledOcr[a.id] = 'high'
+    })
+    setOcrResults(filledOcr)
+
+    // All links → accessible (set both overrides and statuses)
     const filledLinks = {}
+    const filledOverrides = {}
     ;[...requiredLinks, ...optionalLinks].forEach(l => {
       filledLinks[l.id] = 'accessible'
+      filledOverrides[l.id] = 'accessible'
     })
     setLinkStatuses(filledLinks)
+    setDemoOverrides(filledOverrides)
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -189,27 +208,12 @@ export default function SubmitPage() {
               </button>
             </div>
 
-            {/* ── SECTION 1: Main File ──────────────────────────────────────── */}
-            <Card className="rounded-xl border border-border p-0 gap-0">
-              <div className="px-6 py-4 border-b border-border">
-                <h2 className="text-[15px] font-bold text-foreground">Main File</h2>
-                <p className="text-[12px] text-muted mt-0.5">Your primary submission document</p>
-              </div>
-              <CardContent className="p-6 gap-0">
-                <UploadZone
-                  onFileConfirmed={(fileInfo) => setConfirmedFile(fileInfo)}
-                  onFileCleared={() => setConfirmedFile(null)}
-                  onZoneChange={setZoneState}
-                />
-              </CardContent>
-            </Card>
-
-            {/* ── SECTION 2: Supporting Files ──────────────────────────────── */}
+            {/* ── SECTION 1: Files to Submit ─────────────────────────────── */}
             <Card className="rounded-xl border border-border p-0 gap-0">
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div>
-                  <h2 className="text-[15px] font-bold text-foreground">Supporting Files</h2>
-                  <p className="text-[12px] text-muted mt-0.5">Additional documents for your submission</p>
+                  <h2 className="text-[15px] font-bold text-foreground">Files to Submit</h2>
+                  <p className="text-[12px] text-muted mt-0.5">Upload all required documents for your submission</p>
                 </div>
                 <RequiredCounter total={requiredTotal} completed={requiredCompleted} />
               </div>
@@ -229,6 +233,7 @@ export default function SubmitPage() {
                         errorMessage={slot.errorMessage}
                         onFileSelect={(file) => handleFileSelect(artifact, file)}
                         onReplace={() => handleReplace(artifact.id)}
+                        onOcrComplete={handleOcrComplete}
                       />
                     )
                   })}
@@ -256,20 +261,86 @@ export default function SubmitPage() {
                             errorMessage={slot.errorMessage}
                             onFileSelect={(file) => handleFileSelect(artifact, file)}
                             onReplace={() => handleReplace(artifact.id)}
+                            onOcrComplete={handleOcrComplete}
                           />
                         )
                       })}
                     </div>
                   </div>
                 )}
+                {/* Demo controls — force file states */}
+                <div className="mt-6 pt-4 border-t border-border">
+                  <p className="text-[10px] font-semibold text-muted/40 uppercase tracking-widest mb-2">Demo: Force file status</p>
+                  <div className="flex flex-col gap-2">
+                    {requiredArtifacts.map(artifact => {
+                      const FILE_DEMO_STATES = [
+                        { key: 'empty',     label: 'Empty' },
+                        { key: 'uploading', label: 'Uploading' },
+                        { key: 'confirmed', label: 'Uploaded' },
+                        { key: 'error',     label: 'Error' },
+                      ]
+                      return (
+                        <div key={artifact.id} className="flex items-center gap-2">
+                          <span className="text-[11px] text-muted w-36 truncate shrink-0">{artifact.name}</span>
+                          <div className="flex gap-1">
+                            {FILE_DEMO_STATES.map(({ key, label }) => (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => {
+                                  if (key === 'confirmed') {
+                                    updateSlot(artifact.id, {
+                                      state: 'confirmed', progress: 100,
+                                      fileName: `${artifact.name}.${artifact.type === 'handwritten' ? 'jpg' : artifact.type}`,
+                                      fileSize: '1.2 MB', errorMessage: null,
+                                    })
+                                    if (artifact.requiresOCR) handleOcrComplete(artifact.id, 'high')
+                                  } else if (key === 'uploading') {
+                                    updateSlot(artifact.id, {
+                                      state: 'uploading', progress: 45,
+                                      fileName: `${artifact.name}.${artifact.type === 'handwritten' ? 'jpg' : artifact.type}`,
+                                      fileSize: '1.2 MB', errorMessage: null,
+                                    })
+                                  } else if (key === 'error') {
+                                    updateSlot(artifact.id, {
+                                      state: 'error', progress: 0,
+                                      fileName: `${artifact.name}.${artifact.type === 'handwritten' ? 'jpg' : artifact.type}`,
+                                      fileSize: '1.2 MB', errorMessage: 'Upload failed — please try again',
+                                    })
+                                  } else {
+                                    updateSlot(artifact.id, {
+                                      state: 'empty', progress: 0,
+                                      fileName: null, fileSize: null, errorMessage: null,
+                                    })
+                                    if (artifact.requiresOCR) handleOcrComplete(artifact.id, null)
+                                  }
+                                }}
+                                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                                  slotData[artifact.id]?.state === key
+                                    ? 'bg-accent text-white'
+                                    : 'bg-surface-secondary text-muted hover:text-foreground'
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
             {/* ── SECTION 3: External Links ────────────────────────────────── */}
             <Card className="rounded-xl border border-border p-0 gap-0">
-              <div className="px-6 py-4 border-b border-border">
-                <h2 className="text-[15px] font-bold text-foreground">External Links</h2>
-                <p className="text-[12px] text-muted mt-0.5">Paste your links below — we'll check if they're accessible</p>
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <div>
+                  <h2 className="text-[15px] font-bold text-foreground">External Links</h2>
+                  <p className="text-[12px] text-muted mt-0.5">Paste your links below — we'll check if they're accessible</p>
+                </div>
+                <RequiredCounter total={requiredLinksTotal} completed={requiredLinksCompleted} />
               </div>
               <CardContent className="p-6 gap-0">
                 {/* Required links */}
@@ -278,7 +349,8 @@ export default function SubmitPage() {
                     key={link.id}
                     link={link}
                     resolveWith={link.simulatedResult}
-                    onStatusChange={(status) => setLinkStatuses(prev => ({ ...prev, [link.id]: status }))}
+                    forceStatus={demoOverrides[link.id] ?? null}
+                    onStatusChange={(id, status) => setLinkStatuses(prev => ({ ...prev, [id]: status }))}
                   />
                 ))}
 
@@ -295,7 +367,8 @@ export default function SubmitPage() {
                         key={link.id}
                         link={link}
                         resolveWith={link.simulatedResult}
-                        onStatusChange={(status) => setLinkStatuses(prev => ({ ...prev, [link.id]: status }))}
+                        forceStatus={demoOverrides[link.id] ?? null}
+                        onStatusChange={(id, status) => setLinkStatuses(prev => ({ ...prev, [id]: status }))}
                       />
                     ))}
                   </div>
@@ -314,7 +387,7 @@ export default function SubmitPage() {
                       <LinkInputRow
                         link={link}
                         resolveWith={link.simulatedResult}
-                        onStatusChange={(status) => setLinkStatuses(prev => ({ ...prev, [link.id]: status }))}
+                        onStatusChange={(id, status) => setLinkStatuses(prev => ({ ...prev, [id]: status }))}
                       />
                     </motion.div>
                   ))}
@@ -338,6 +411,43 @@ export default function SubmitPage() {
                     <LinkCheckSummary links={summaryLinks} />
                   </div>
                 )}
+
+                {/* Demo controls — force link statuses */}
+                <div className="mt-6 pt-4 border-t border-border">
+                  <p className="text-[10px] font-semibold text-muted/40 uppercase tracking-widest mb-2">Demo: Force link status</p>
+                  <div className="flex flex-col gap-2">
+                    {[...requiredLinks, ...optionalLinks].map(link => (
+                      <div key={link.id} className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted w-32 truncate shrink-0">{link.name}</span>
+                        <div className="flex gap-1">
+                          {['accessible', 'permission-blocked', 'broken', 'empty-link'].map(status => (
+                            <button
+                              key={status}
+                              type="button"
+                              onClick={() => setDemoOverrides(prev => ({ ...prev, [link.id]: status }))}
+                              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                                demoOverrides[link.id] === status
+                                  ? 'bg-accent text-white'
+                                  : 'bg-surface-secondary text-muted hover:text-foreground'
+                              }`}
+                            >
+                              {status === 'accessible' ? 'OK' : status === 'permission-blocked' ? 'Blocked' : status === 'broken' ? 'Broken' : 'Empty'}
+                            </button>
+                          ))}
+                          {demoOverrides[link.id] && (
+                            <button
+                              type="button"
+                              onClick={() => setDemoOverrides(prev => { const n = {...prev}; delete n[link.id]; return n })}
+                              className="px-2 py-0.5 rounded text-[10px] font-medium text-muted hover:text-foreground"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -356,17 +466,23 @@ export default function SubmitPage() {
                 </div>
                 <p className="text-[11px] text-muted/60">AI will check your work. Your instructor decides the grade.</p>
               </div>
-              <Button
-                variant="primary"
-                size="sm"
-                className="rounded-lg px-6 font-semibold"
-                isDisabled={!canSubmit}
-                onPress={() => navigate('/submit/validating', {
-                  state: { primaryFile: confirmedFile, artifactData: slotData, linkStatuses }
-                })}
-              >
-                Submit for analysis
-              </Button>
+              <div className="flex items-center gap-4">
+                <ProgressRing
+                  completed={requiredCompleted + requiredLinksCompleted}
+                  total={requiredTotal + requiredLinksTotal}
+                />
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="rounded-lg px-6 font-semibold"
+                  isDisabled={!canSubmit}
+                  onPress={() => navigate('/submit/validating', {
+                    state: { artifactData: slotData, linkStatuses }
+                  })}
+                >
+                  Submit for analysis
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -4,7 +4,7 @@ export const mockAssignment = {
   title: 'Business Case Analysis — Module 3',
   courseName: 'MBA Strategic Management',
   instructorName: 'Dr. Prasad Sharma',
-  deadline: '2026-04-03T23:59:00',
+  deadline: '2026-04-04T23:59:00',
   submissionStatus: 'not-started', // not-started | in-progress | submitted | resubmission-needed
   requiredArtifacts: [
     { id: 'a1', name: 'Business Case PDF',    type: 'pdf',         required: true  },

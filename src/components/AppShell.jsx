@@ -16,7 +16,7 @@
 
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Menu, LayoutDashboard, BookOpen, FolderOpen, BarChart2 } from 'lucide-react'
+import { Menu, LayoutDashboard, BookOpen, FolderOpen, BarChart2, Ticket } from 'lucide-react'
 import AppHeader from './AppHeader'
 import AppSidebar from './AppSidebar'
 
@@ -26,6 +26,7 @@ const BOTTOM_TABS = [
   { id: 'modules',     label: 'Modules',      Icon: FolderOpen,      route: '/status',       isActive: (p) => p.startsWith('/status') },
   { id: 'assignments', label: 'Assignments',  Icon: BookOpen,        route: '/',             isActive: (p) => p === '/' || p.startsWith('/submit') || p.startsWith('/result') || p.startsWith('/consent') || p.startsWith('/fix') || p === '/orientation' },
   { id: 'results',     label: 'Results',      Icon: BarChart2,       route: '/result/ready', isActive: () => false },
+  { id: 'tickets',     label: 'Tickets',      Icon: Ticket,          route: '/tickets',      isActive: (p) => p.startsWith('/tickets') },
 ]
 
 export default function AppShell({ children }) {

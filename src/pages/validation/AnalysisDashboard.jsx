@@ -1,8 +1,9 @@
 /**
  * AnalysisDashboard — Review & Analyse
  *
- * Single-column validation results screen with inline fix capability.
- * Sections: Banner → Issues (with inline fix) → Submission details → Rubric.
+ * Two-panel layout: Issues (left) + AI Assistant/Fix details (right).
+ * Below: Submission details + Rubric evaluation.
+ * Consent modal for "Submit as is" flow.
  */
 
 import { useState, useEffect } from 'react'
@@ -12,34 +13,33 @@ import {
   Button, Card, CardContent, Chip,
   Accordion, AccordionItem, AccordionHeading, AccordionTrigger,
   AccordionPanel, AccordionBody, AccordionIndicator,
-  ProgressBar, ProgressBarTrack, ProgressBarFill,
 } from '@heroui/react'
 import {
   AlertTriangle, CheckCircle2, XCircle, Layers, ChevronDown, TrendingUp,
-  FileText, Table2, Link2, Monitor, Camera, Upload, Clock, Info,
+  FileText, Table2, Link2, Monitor, Camera, Upload, Clock, Info, Sparkles,
 } from 'lucide-react'
 import InnerPageBar from '../../components/ui/InnerPageBar'
 import { mockAssignment } from '../../data/mock-assignment'
 import { useCountdown } from '../../hooks/useCountdown'
 
-// ─── Mock issues ───────────────────────────────────────────────────────────────
+// ─── Mock issues (linked to submission files) ─────────────────────────────────
 const MOCK_ISSUES = [
   {
     id: 'i1',
     type: 'warning',
     title: 'No supporting document found',
     description: 'Your analysis lacks supporting evidence documents. This may result in 0 marks for the Research Evidence criterion.',
-    file: 'Business Case PDF',
+    file: 'Supporting Document',
+    fileDetail: 'Google Drive link',
     page: null,
     impact: 'High impact on score',
-    recommendation: 'Upload a supporting evidence document that references your key claims. This has the highest impact on your score.',
-    fixAction: 'Upload supporting evidence',
-    why: 'Your instructor cannot evaluate research evidence without supporting documents.',
-    impactDetail: 'The Research Evidence criterion may score zero.',
+    consequence: 'This criterion may receive low or zero score if evidence is not detected.',
+    criterion: 'Research Evidence (20%)',
+    fixType: 'link',
     steps: [
-      'Prepare your supporting evidence document (PDF, DOCX, or image)',
-      'Upload it using the button below',
-      'We\'ll re-check only this item',
+      'Open Google Drive and locate your evidence document',
+      'Ensure the sharing settings allow "Anyone with link" access',
+      'Paste the updated link below',
     ],
   },
   {
@@ -47,13 +47,13 @@ const MOCK_ISSUES = [
     type: 'warning',
     title: 'References section incomplete',
     description: 'The references section on page 8 contains only 3 citations. The rubric expects evidence-based analysis with properly cited external sources.',
-    file: 'Business Case PDF',
+    file: 'Business Case Analysis.pdf',
+    fileDetail: 'PDF · 2.4 MB',
     page: 8,
     impact: 'Fixing this may improve your score',
-    recommendation: 'Add at least 5 more academic or industry references to support your strategic analysis.',
-    fixAction: 'Add more references',
-    why: 'The rubric requires evidence-based analysis with properly cited external sources.',
-    impactDetail: 'The references section is incomplete and may affect your Clarity & Attention to Detail score.',
+    consequence: 'Incomplete references may affect your score for this criterion.',
+    criterion: 'Clarity & Attention to Detail (10%)',
+    fixType: 'upload',
     steps: [
       'Open your Business Case PDF',
       'Add at least 5 more academic or industry references',
@@ -95,25 +95,15 @@ const MOCK_RUBRIC_EVAL = [
 
 // ─── Impact mapping for consent modal ────────────────────────────────────
 const IMPACT_MAP = [
-  {
-    criterion: 'Research Evidence',
-    weight: '20%',
-    issue: 'No supporting document found',
-    consequence: 'This criterion may receive low or zero score if evidence is not detected.',
-  },
-  {
-    criterion: 'Clarity & Attention to Detail',
-    weight: '10%',
-    issue: 'References section incomplete',
-    consequence: 'Incomplete references may affect your score for this criterion.',
-  },
+  { criterion: 'Research Evidence', weight: '20%', issue: 'No supporting document found', consequence: 'This criterion may receive low or zero score if evidence is not detected.' },
+  { criterion: 'Clarity & Attention to Detail', weight: '10%', issue: 'References section incomplete', consequence: 'Incomplete references may affect your score for this criterion.' },
 ]
 
 // ─── Banner config ────────────────────────────────────────────────────────────
 const BANNER_CONFIG = {
   ready:   { bg: 'bg-white', border: 'border-border', Icon: CheckCircle2, iconColor: 'text-success', headline: "You're all set — looking good", sub: 'Everything checks out. You can submit with confidence.' },
-  warning: { bg: 'bg-white',  border: 'border-border',  Icon: CheckCircle2,  iconColor: 'text-accent',  headline: "You're almost there" },
-  blocker: { bg: 'bg-warning-soft', border: 'border-warning',  Icon: AlertTriangle, iconColor: 'text-warning', headline: "Almost ready — a few things to review", sub: 'Your work is safe. Fix these quickly and you\'re ready to go.' },
+  warning: { bg: 'bg-white', border: 'border-border', Icon: CheckCircle2, iconColor: 'text-accent',  headline: "You're almost there" },
+  blocker: { bg: 'bg-warning-soft', border: 'border-warning', Icon: AlertTriangle, iconColor: 'text-warning', headline: "Almost ready — a few things to review", sub: 'Your work is safe. Fix these quickly and you\'re ready to go.' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -122,20 +112,14 @@ export default function AnalysisDashboard() {
   const { state: routeState } = useLocation()
 
   const issues = routeState?.warnings ?? MOCK_ISSUES
-  const readiness = routeState?.readiness ?? (
-    MOCK_ISSUES.some(i => i.type === 'blocker') ? 'blocker'
-    : MOCK_ISSUES.length > 0 ? 'warning' : 'ready'
-  )
+  const readiness = routeState?.readiness ?? (MOCK_ISSUES.some(i => i.type === 'blocker') ? 'blocker' : MOCK_ISSUES.length > 0 ? 'warning' : 'ready')
   const deadline = routeState?.deadline ?? mockAssignment.deadline
-
   const { expired } = useCountdown(deadline)
 
-  // ── Inline fix state ──────────────────────────────────────────────────────
-  const [expandedIssue, setExpandedIssue] = useState(issues[0]?.id ?? null)
+  // ── State ─────────────────────────────────────────────────────────────────
+  const [selectedIssue, setSelectedIssue] = useState(issues[0] ?? null)
   const [fixedIssues, setFixedIssues] = useState(new Set())
   const [showValidated, setShowValidated] = useState(false)
-
-  // ── Consent modal state ─────────────────────────────────────────────────
   const [showConsent, setShowConsent] = useState(false)
   const [consentStep, setConsentStep] = useState(1)
   const [ctaReady, setCtaReady] = useState(false)
@@ -151,49 +135,37 @@ export default function AnalysisDashboard() {
   const unresolvedCount = issues.length - fixedIssues.size
   const allFixed = fixedIssues.size >= issues.length
   const validatedCount = MOCK_SUBMISSION_ITEMS.filter(i => i.status === 'ready').length
-
-  function handleFixClick(issueId) {
-    setExpandedIssue(expandedIssue === issueId ? null : issueId)
-  }
+  const progressPercent = allFixed ? 100 : (issues.length > 0 ? 80 : 100)
 
   function handleFixApplied(issueId) {
     setFixedIssues(prev => new Set([...prev, issueId]))
-    setExpandedIssue(null)
+    // Select next unresolved issue
+    const next = issues.find(i => i.id !== issueId && !fixedIssues.has(i.id))
+    setSelectedIssue(next ?? null)
   }
 
   const banner = expired
     ? { bg: 'bg-warning-soft', border: 'border-warning', Icon: AlertTriangle, iconColor: 'text-warning', headline: 'You can still submit' }
-    : allFixed
-    ? BANNER_CONFIG.ready
-    : (BANNER_CONFIG[readiness] ?? BANNER_CONFIG.warning)
+    : allFixed ? BANNER_CONFIG.ready : (BANNER_CONFIG[readiness] ?? BANNER_CONFIG.warning)
   const bannerSub = expired
     ? 'The deadline has passed. Late submission policy may apply.'
-    : allFixed
-    ? "Everything checks out. You're ready to submit."
+    : allFixed ? "Everything checks out. You're ready to submit."
     : (banner.sub ?? `Your work is safe. Just ${unresolvedCount} quick ${unresolvedCount === 1 ? 'fix' : 'fixes'} and you're ready to go.`)
 
-  // Progress: 80% when issues exist, 100% when all fixed
-  const progressPercent = allFixed ? 100 : (issues.length > 0 ? 80 : 100)
+  const submissionTime = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
 
-  const submissionTime = new Date().toLocaleString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  })
+  // Check if a submission item has an issue
+  function getItemIssueCount(itemName) {
+    return issues.filter(i => i.file === itemName && !fixedIssues.has(i.id)).length
+  }
 
   return (
     <>
-      <InnerPageBar
-        title="Review & Analyse"
-        deadline={deadline}
-        breadcrumbItems={[
-          { label: 'Assignments', href: '/' },
-          { label: 'Review & Analyse' },
-        ]}
-      />
+      <InnerPageBar title="Review & Analyse" deadline={deadline} />
 
       <div className="min-h-screen bg-surface-secondary">
         <div className="px-8 lg:px-10 py-8">
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div className="max-w-6xl mx-auto space-y-6">
 
             {/* ═══ 1. STATUS BANNER + PROGRESS ═══ */}
             <div className={`rounded-xl p-5 ${banner.bg} border ${banner.border}`}>
@@ -203,222 +175,221 @@ export default function AnalysisDashboard() {
                   <p className="text-[16px] font-bold text-foreground">{banner.headline}</p>
                   <p className="text-[13px] text-muted mt-1">{bannerSub}</p>
                 </div>
-                <Chip
-                  variant="soft"
-                  color={progressPercent === 100 ? 'success' : 'accent'}
-                  size="sm"
-                  className="shrink-0"
-                >
+                <Chip variant="soft" color={progressPercent === 100 ? 'success' : 'accent'} size="sm" className="shrink-0">
                   {progressPercent === 100 ? 'Ready' : `${progressPercent}% complete`}
                 </Chip>
               </div>
-              {/* Progress bar */}
               <div className="mt-4 flex items-center gap-3">
                 <div className="flex-1 h-2 bg-border rounded-full overflow-hidden">
-                  <motion.div
-                    className={`h-full rounded-full ${progressPercent === 100 ? 'bg-success' : 'bg-accent'}`}
-                    initial={{ width: '0%' }}
-                    animate={{ width: `${progressPercent}%` }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                  />
+                  <motion.div className={`h-full rounded-full ${progressPercent === 100 ? 'bg-success' : 'bg-accent'}`} initial={{ width: '0%' }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.6, ease: 'easeOut' }} />
                 </div>
-                {unresolvedCount > 0 && (
-                  <span className="text-[12px] text-muted shrink-0">{unresolvedCount} quick {unresolvedCount === 1 ? 'fix' : 'fixes'} remaining</span>
-                )}
+                {unresolvedCount > 0 && <span className="text-[12px] text-muted shrink-0">{unresolvedCount} quick {unresolvedCount === 1 ? 'fix' : 'fixes'} remaining</span>}
               </div>
             </div>
 
-            {/* ═══ 2. ISSUES WITH INLINE FIX (moved to top) ═══ */}
+            {/* ═══ 2. TWO-PANEL: ISSUES (left) + AI ASSISTANT (right) ═══ */}
             {issues.length > 0 && (
-              <Card className="rounded-xl border border-border p-0 gap-0">
-                <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                  <h2 className="text-[15px] font-bold text-foreground">Quick fixes to strengthen your submission</h2>
-                  <span className="text-[13px] text-muted">
-                    {fixedIssues.size > 0
-                      ? `${fixedIssues.size} of ${issues.length} done`
-                      : `${issues.length} ${issues.length === 1 ? 'thing' : 'things'} to review`
-                    }
-                  </span>
-                </div>
-                {issues.map((issue, i) => {
-                  const isFixed = fixedIssues.has(issue.id)
-                  const isExpanded = expandedIssue === issue.id
+              <div className="flex flex-col lg:flex-row gap-6 items-stretch">
 
-                  return (
-                    <div key={issue.id} className={`${i < issues.length - 1 ? 'border-b border-border' : ''}`}>
-                      {/* Issue header row */}
-                      <div className={`px-6 py-4 ${isFixed ? 'bg-success-soft' : ''}`}>
-                        <div className="flex items-start gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                            isFixed ? 'bg-success-soft' : issue.type === 'blocker' ? 'bg-warning-soft' : 'bg-info-soft'
-                          }`}>
-                            {isFixed
-                              ? <CheckCircle2 className="w-4 h-4 text-success" aria-hidden="true" />
-                              : issue.type === 'blocker'
-                                ? <AlertTriangle className="w-4 h-4 text-warning" aria-hidden="true" />
-                                : <TrendingUp className="w-4 h-4 text-info" aria-hidden="true" />
-                            }
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between gap-3">
-                              <p className={`text-[14px] font-semibold ${isFixed ? 'text-success line-through' : 'text-foreground'}`}>{issue.title}</p>
-                              {isFixed ? (
-                                <Chip variant="soft" color="success" size="sm">Done</Chip>
-                              ) : (
-                                <Chip variant="soft" color={issue.type === 'blocker' ? 'warning' : 'accent'} size="sm">
-                                  {issue.type === 'blocker' ? 'Needs attention' : 'Quick fix'}
-                                </Chip>
-                              )}
-                            </div>
-                            {!isFixed && (
-                              <>
-                                <p className="text-[13px] text-muted mt-1 leading-relaxed">{issue.description}</p>
-                                <div className="mt-3 flex items-center gap-4">
-                                  <div className="flex items-center gap-4 text-[12px] text-muted flex-1">
-                                    <span>File: {issue.file}</span>
-                                    {issue.page && <span>Page {issue.page}</span>}
-                                    <span className="font-medium text-info">{issue.impact}</span>
-                                  </div>
-                                  <div className="flex items-center gap-3 shrink-0">
-                                    <span className="text-[11px] text-muted flex items-center gap-1">
-                                      <Clock className="w-3 h-3" aria-hidden="true" />
-                                      ~30s to fix
-                                    </span>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="rounded-lg px-4"
-                                      onPress={() => handleFixClick(issue.id)}
-                                    >
-                                      {isExpanded ? 'Close' : 'Fix now'}
-                                    </Button>
-                                  </div>
-                                </div>
-                              </>
-                            )}
-                            {isFixed && (
-                              <p className="text-[12px] text-success mt-1">Your updated file has been received.</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Expanded inline fix area */}
-                      <AnimatePresence>
-                        {isExpanded && !isFixed && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3, ease: 'easeOut' }}
-                            className="overflow-hidden"
-                          >
-                            <div className="px-6 pb-5 pt-1">
-                              {/* Why + Impact */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div className="p-3 rounded-lg bg-surface-secondary">
-                                  <p className="text-[11px] font-semibold text-foreground mb-1">Why it matters</p>
-                                  <p className="text-[12px] text-muted leading-relaxed">{issue.why}</p>
-                                </div>
-                                <div className="p-3 rounded-lg bg-surface-secondary">
-                                  <p className="text-[11px] font-semibold text-foreground mb-1">Impact if not fixed</p>
-                                  <p className="text-[12px] text-muted leading-relaxed">{issue.impactDetail}</p>
-                                </div>
-                              </div>
-
-                              {/* Steps */}
-                              <div className="mt-4">
-                                <p className="text-[11px] font-bold text-foreground uppercase tracking-widest mb-2">How to fix</p>
-                                <div className="flex flex-col gap-1.5">
-                                  {issue.steps.map((step, si) => (
-                                    <div key={si} className="flex items-start gap-2.5">
-                                      <span className="w-5 h-5 rounded-full bg-accent-soft flex items-center justify-center shrink-0 text-[10px] font-bold text-accent">{si + 1}</span>
-                                      <p className="text-[13px] text-muted leading-snug pt-0.5">{step}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* Upload zone */}
-                              <div
-                                className="mt-4 rounded-xl border-2 border-dashed border-border bg-surface-secondary p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-accent transition-colors"
-                                onClick={() => handleFixApplied(issue.id)}
-                                role="button"
-                                tabIndex={0}
-                              >
-                                <Upload className="w-7 h-7 text-muted" strokeWidth={1.5} aria-hidden="true" />
-                                <p className="text-[13px] font-semibold text-foreground">Drop your file here or click to upload</p>
-                                <p className="text-[11px] text-muted">PDF, DOCX, or image files accepted</p>
-                              </div>
-
-                              {/* Estimated time */}
-                              <div className="mt-2 flex items-center gap-1.5">
-                                <Clock className="w-3 h-3 text-muted" aria-hidden="true" />
-                                <span className="text-[11px] text-muted">Estimated fix time: ~30 seconds</span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                {/* LEFT: Issues list */}
+                <div className="w-full lg:w-[340px] shrink-0">
+                  <Card className="rounded-xl border border-border p-0 gap-0 h-full">
+                    <div className="px-6 h-14 border-b border-border flex items-center justify-between">
+                      <p className="text-[14px] font-bold text-foreground">Quick fixes</p>
+                      <span className="text-[12px] text-muted">
+                        {fixedIssues.size > 0 ? `${fixedIssues.size} of ${issues.length} done` : `${issues.length} ${issues.length === 1 ? 'thing' : 'things'} to review`}
+                      </span>
                     </div>
-                  )
-                })}
-              </Card>
+                    <div>
+                      {issues.map((issue, i) => {
+                        const isFixed = fixedIssues.has(issue.id)
+                        const isSelected = selectedIssue?.id === issue.id
+                        return (
+                          <button
+                            key={issue.id}
+                            type="button"
+                            onClick={() => !isFixed && setSelectedIssue(issue)}
+                            className={`w-full text-left px-6 py-4 transition-colors ${i < issues.length - 1 ? 'border-b border-border' : ''} ${
+                              isFixed ? 'bg-success-soft' : isSelected ? 'bg-surface-secondary' : 'hover:bg-surface-secondary'
+                            } ${isFixed ? 'cursor-default' : 'cursor-pointer'}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                                isFixed ? 'bg-success-soft' : 'bg-info-soft'
+                              }`}>
+                                {isFixed
+                                  ? <CheckCircle2 className="w-3.5 h-3.5 text-success" aria-hidden="true" />
+                                  : <TrendingUp className="w-3.5 h-3.5 text-info" aria-hidden="true" />
+                                }
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-[13px] font-semibold leading-snug ${isFixed ? 'text-success line-through' : 'text-foreground'}`}>
+                                  {issue.title}
+                                </p>
+                                <p className="text-[11px] text-muted mt-0.5">{issue.file}</p>
+                                {isFixed ? (
+                                  <p className="text-[11px] font-medium text-success mt-1">Done</p>
+                                ) : (
+                                  <p className="text-[11px] font-medium text-info mt-1">{issue.impact}</p>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </Card>
+                </div>
+
+                {/* RIGHT: AI Assistant / Fix details */}
+                <div className="flex-1 min-w-0">
+                  <Card className="rounded-xl border border-border p-0 gap-0 h-full">
+                    {selectedIssue && !fixedIssues.has(selectedIssue.id) ? (
+                      <>
+                        {/* Header */}
+                        <div className="px-6 h-14 border-b border-border flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-purple" aria-hidden="true" />
+                          <span className="text-[11px] font-bold text-purple uppercase tracking-widest">Smart Assistant</span>
+                        </div>
+
+                        <CardContent className="p-6 gap-0">
+                          {/* Issue title */}
+                          <h3 className="text-[18px] font-bold text-foreground">{selectedIssue.title}</h3>
+
+                          {/* Description */}
+                          <p className="text-[13px] text-muted leading-relaxed mt-2">{selectedIssue.description}</p>
+
+                          {/* Consequence + Criterion */}
+                          <div className="mt-4 rounded-lg border border-border overflow-hidden">
+                            <div className="flex">
+                              <div className="w-1 bg-warning shrink-0" aria-hidden="true" />
+                              <div className="p-4 flex-1">
+                                <p className="text-[13px] text-foreground leading-relaxed">{selectedIssue.consequence}</p>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <Layers className="w-3.5 h-3.5 text-muted" aria-hidden="true" />
+                                  <span className="text-[12px] font-medium text-muted">{selectedIssue.criterion}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* How to fix */}
+                          <div className="mt-5">
+                            <p className="text-[13px] font-bold text-foreground mb-3">How to fix:</p>
+                            <div className="flex flex-col gap-2">
+                              {selectedIssue.steps.map((step, i) => (
+                                <div key={i} className="flex items-start gap-2.5">
+                                  <span className="w-5 h-5 rounded-full bg-accent-soft flex items-center justify-center shrink-0 text-[10px] font-bold text-accent">{i + 1}</span>
+                                  <p className="text-[13px] text-muted leading-snug pt-0.5">{step}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Fix action — contextual based on fixType */}
+                          {selectedIssue.fixType === 'link' ? (
+                            <div className="mt-5">
+                              <div className="flex gap-2">
+                                <input
+                                  type="url"
+                                  placeholder="Paste your Google Drive link here"
+                                  className="flex-1 h-11 rounded-lg border border-border bg-white px-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-colors"
+                                  aria-label="Paste link"
+                                />
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  className="rounded-lg px-4 h-11 font-semibold shrink-0"
+                                  onPress={() => handleFixApplied(selectedIssue.id)}
+                                >
+                                  Update link
+                                </Button>
+                              </div>
+                              <p className="text-[11px] text-muted mt-2">Click "Update link" to simulate fix for demo</p>
+                            </div>
+                          ) : (
+                            <div
+                              className="mt-5 rounded-xl border-2 border-dashed border-border bg-surface-secondary p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-accent transition-colors"
+                              onClick={() => handleFixApplied(selectedIssue.id)}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <Upload className="w-7 h-7 text-muted" strokeWidth={1.5} aria-hidden="true" />
+                              <p className="text-[13px] font-semibold text-foreground">Drop your file here or click to upload</p>
+                              <p className="text-[11px] text-muted">Click to simulate fix for demo</p>
+                            </div>
+                          )}
+
+                          <div className="mt-3 flex items-center gap-1.5">
+                            <Clock className="w-3 h-3 text-muted" aria-hidden="true" />
+                            <span className="text-[11px] text-muted">Estimated fix time: ~30 seconds</span>
+                          </div>
+                        </CardContent>
+                      </>
+                    ) : (
+                      /* All fixed or no issue selected — summary */
+                      <CardContent className="p-6 gap-0 flex flex-col items-center text-center py-12">
+                        <div className="w-14 h-14 rounded-full bg-success-soft flex items-center justify-center">
+                          <CheckCircle2 className="w-7 h-7 text-success" aria-hidden="true" />
+                        </div>
+                        <p className="text-[16px] font-bold text-foreground mt-4">
+                          {allFixed ? 'All fixes applied' : 'Looking good'}
+                        </p>
+                        <p className="text-[13px] text-muted mt-1">
+                          {allFixed ? "You're ready to submit your work." : 'Select an issue on the left to see details.'}
+                        </p>
+                      </CardContent>
+                    )}
+                  </Card>
+                </div>
+
+              </div>
             )}
 
             {/* ═══ 3. SUBMISSION DETAILS ═══ */}
             <Card className="rounded-xl border border-border p-0 gap-0">
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <h2 className="text-[15px] font-bold text-foreground">Your submission</h2>
-                <button
-                  type="button"
-                  onClick={() => setShowValidated(!showValidated)}
-                  className="text-[12px] font-medium text-accent hover:underline"
-                >
+                <button type="button" onClick={() => setShowValidated(!showValidated)} className="text-[12px] font-medium text-accent hover:underline">
                   {showValidated ? 'Show issues only' : 'Show all items'}
                 </button>
               </div>
 
-              {/* Warning items — status updates when all fixed */}
-              {MOCK_SUBMISSION_ITEMS.filter(i => i.status !== 'ready').map((item, i) => (
-                <div
-                  key={`w-${i}`}
-                  className="flex items-center gap-4 px-6 py-3.5 border-b border-border"
-                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${item.iconBg}`} aria-hidden="true">
-                    <item.Icon className={`w-5 h-5 ${item.iconColor}`} strokeWidth={1.75} aria-hidden="true" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-foreground">{item.name}</p>
-                    <p className="text-[12px] text-muted">{item.detail}</p>
-                  </div>
-                  {allFixed ? (
-                    <span className="text-[12px] font-medium text-success flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
-                      Validated
-                    </span>
-                  ) : (
-                    <Chip variant="soft" color="warning" size="sm">Needs review</Chip>
-                  )}
-                </div>
-              ))}
-
-              {/* Validated items — collapsed by default */}
-              {showValidated ? (
-                MOCK_SUBMISSION_ITEMS.filter(i => i.status === 'ready').map((item, i, arr) => (
-                  <div
-                    key={`v-${i}`}
-                    className={`flex items-center gap-4 px-6 py-3.5 ${i < arr.length - 1 ? 'border-b border-border' : ''}`}
-                  >
+              {/* Items with issues — always visible, linked to issues above */}
+              {MOCK_SUBMISSION_ITEMS.filter(i => i.status !== 'ready').map((item, i) => {
+                const issueCount = getItemIssueCount(item.name)
+                return (
+                  <div key={`w-${i}`} className="flex items-center gap-4 px-6 py-3.5 border-b border-border">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${item.iconBg}`} aria-hidden="true">
                       <item.Icon className={`w-5 h-5 ${item.iconColor}`} strokeWidth={1.75} aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] font-medium text-foreground">{item.name}</p>
                       <p className="text-[12px] text-muted">{item.detail}</p>
-                      {item.lastChecked && (
-                        <p className="text-[11px] text-muted mt-0.5">Checked {item.lastChecked}</p>
-                      )}
+                    </div>
+                    {allFixed || issueCount === 0 ? (
+                      <span className="text-[12px] font-medium text-success flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                        Validated
+                      </span>
+                    ) : (
+                      <span className="text-[12px] font-medium text-info">{issueCount} {issueCount === 1 ? 'issue' : 'issues'} found</span>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Validated items */}
+              {showValidated ? (
+                MOCK_SUBMISSION_ITEMS.filter(i => i.status === 'ready').map((item, i, arr) => (
+                  <div key={`v-${i}`} className={`flex items-center gap-4 px-6 py-3.5 ${i < arr.length - 1 ? 'border-b border-border' : ''}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${item.iconBg}`} aria-hidden="true">
+                      <item.Icon className={`w-5 h-5 ${item.iconColor}`} strokeWidth={1.75} aria-hidden="true" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14px] font-medium text-foreground">{item.name}</p>
+                      <p className="text-[12px] text-muted">{item.detail}</p>
+                      {item.lastChecked && <p className="text-[11px] text-muted mt-0.5">Checked {item.lastChecked}</p>}
                     </div>
                     <span className="text-[12px] font-medium text-success flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
@@ -432,6 +403,8 @@ export default function AnalysisDashboard() {
                   <span>{validatedCount} items already validated</span>
                 </div>
               )}
+
+              {/* Student metadata */}
               <div className="px-6 py-4 border-t border-border bg-surface-secondary rounded-b-xl">
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
@@ -463,21 +436,21 @@ export default function AnalysisDashboard() {
                   <span className="font-semibold">AI Instructor Evaluation:</span> Your submission has been evaluated against the assignment rubric. Your instructor makes the final grade decision.
                 </p>
               </div>
+              {/* Scoring legend */}
+              <div className="px-6 py-3 border-b border-border bg-surface-secondary">
+                <p className="text-[11px] text-muted">
+                  <span className="font-semibold">Scoring:</span> 10 = Exceeds · 8 = Meets · 6 = Minor issues · 4 = Below · 2 = Significant issues
+                </p>
+              </div>
+
               <Accordion>
                 {MOCK_RUBRIC_EVAL.map((criterion) => (
                   <AccordionItem key={criterion.criterionId} value={criterion.criterionId}>
                     <AccordionHeading>
                       <AccordionTrigger className="px-6 py-4 w-full hover:bg-surface-secondary">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[14px] font-semibold text-foreground">{criterion.name}</span>
-                            <span className="text-[13px] text-muted">({criterion.weight}%)</span>
-                          </div>
-                          <div className="mt-2 w-full">
-                            <ProgressBar value={criterion.weight} min={0} max={100} size="sm" color="accent" aria-label={`${criterion.name} weight`} className="w-full">
-                              <ProgressBarTrack><ProgressBarFill /></ProgressBarTrack>
-                            </ProgressBar>
-                          </div>
+                        <div className="flex-1 flex items-center justify-between">
+                          <span className="text-[14px] font-semibold text-foreground">{criterion.name}</span>
+                          <span className="text-[13px] font-bold text-accent mr-3">{criterion.weight}%</span>
                         </div>
                         <AccordionIndicator>
                           <ChevronDown className="w-4 h-4 text-muted" strokeWidth={2} aria-hidden="true" />
@@ -520,7 +493,7 @@ export default function AnalysisDashboard() {
         <div className="sticky bottom-0 w-full z-40">
           <div className="pointer-events-none absolute -top-6 left-0 right-0 h-6 bg-gradient-to-b from-transparent to-surface-secondary" aria-hidden="true" />
           <div className="bg-white border-t border-border px-8 lg:px-10 py-4">
-            <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="max-w-6xl mx-auto flex items-center justify-between">
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-success" aria-hidden="true" />
@@ -530,19 +503,12 @@ export default function AnalysisDashboard() {
               </div>
               <div className="flex items-center gap-3">
                 {!allFixed && readiness !== 'ready' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="rounded-lg text-muted"
-                    onPress={() => { setShowConsent(true); setConsentStep(1); setCtaReady(false) }}
-                  >
+                  <Button variant="ghost" size="sm" className="rounded-lg text-muted" onPress={() => { setShowConsent(true); setConsentStep(1); setCtaReady(false) }}>
                     Submit as is
                   </Button>
                 )}
                 <Button
-                  variant="primary"
-                  size="sm"
-                  className="rounded-lg px-6 font-semibold"
+                  variant="primary" size="sm" className="rounded-lg px-6 font-semibold"
                   isDisabled={!allFixed && readiness !== 'ready' && fixedIssues.size === 0}
                   onPress={() => navigate('/status')}
                 >
@@ -558,51 +524,26 @@ export default function AnalysisDashboard() {
       {/* ═══ CONSENT MODAL ═══ */}
       {showConsent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setShowConsent(false)}
-            aria-hidden="true"
-          />
-          {/* Dialog */}
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowConsent(false)} aria-hidden="true" />
           <Card className="relative z-10 max-w-lg w-full mx-4 rounded-2xl border border-border p-0 gap-0 max-h-[85vh] overflow-y-auto">
             <CardContent className="p-6 lg:p-8 gap-0">
-
               {consentStep === 1 && (
                 <>
                   <h2 className="text-[20px] font-bold text-foreground">Before you submit</h2>
-                  <p className="text-[14px] text-muted mt-2 leading-relaxed">
-                    Some parts of your submission may affect how your work is evaluated.
-                  </p>
-
+                  <p className="text-[14px] text-muted mt-2 leading-relaxed">Some parts of your submission may affect how your work is evaluated.</p>
                   <div className="mt-5 p-4 rounded-xl bg-surface-secondary flex items-center gap-3">
                     <Info className="w-5 h-5 text-info shrink-0" aria-hidden="true" />
-                    <p className="text-[14px] font-medium text-foreground">
-                      {issues.filter(i => !fixedIssues.has(i.id)).length} areas may be impacted
-                    </p>
+                    <p className="text-[14px] font-medium text-foreground">{issues.filter(i => !fixedIssues.has(i.id)).length} areas may be impacted</p>
                   </div>
-
                   <div className="mt-6 flex items-center justify-end gap-3">
-                    <Button variant="ghost" size="sm" className="rounded-lg" onPress={() => setShowConsent(false)}>
-                      Go back
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="rounded-lg px-5 font-semibold"
-                      isDisabled={!ctaReady}
-                      onPress={() => setConsentStep(2)}
-                    >
-                      Review impact →
-                    </Button>
+                    <Button variant="ghost" size="sm" className="rounded-lg" onPress={() => setShowConsent(false)}>Go back</Button>
+                    <Button variant="primary" size="sm" className="rounded-lg px-5 font-semibold" isDisabled={!ctaReady} onPress={() => setConsentStep(2)}>Review impact →</Button>
                   </div>
                 </>
               )}
-
               {consentStep === 2 && (
                 <>
                   <h2 className="text-[20px] font-bold text-foreground">What this means for your evaluation</h2>
-
                   <div className="mt-5 flex flex-col gap-3">
                     {IMPACT_MAP.map((impact, i) => (
                       <div key={i} className="p-4 rounded-xl border border-border bg-white">
@@ -611,71 +552,31 @@ export default function AnalysisDashboard() {
                           <span className="text-[12px] font-medium text-muted">{impact.weight}</span>
                         </div>
                         <p className="text-[13px] text-muted mt-1">{impact.issue}</p>
-                        <p className="text-[13px] text-foreground mt-2 leading-relaxed bg-surface-secondary p-3 rounded-lg">
-                          "{impact.consequence}"
-                        </p>
+                        <p className="text-[13px] text-foreground mt-2 leading-relaxed bg-surface-secondary p-3 rounded-lg">"{impact.consequence}"</p>
                       </div>
                     ))}
                   </div>
-
                   <div className="mt-6 flex items-center justify-end gap-3">
-                    <Button variant="ghost" size="sm" className="rounded-lg" onPress={() => { setShowConsent(false) }}>
-                      Go back and fix
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="rounded-lg px-5 font-semibold"
-                      onPress={() => setConsentStep(3)}
-                    >
-                      I understand, continue
-                    </Button>
+                    <Button variant="ghost" size="sm" className="rounded-lg" onPress={() => setShowConsent(false)}>Go back and fix</Button>
+                    <Button variant="primary" size="sm" className="rounded-lg px-5 font-semibold" onPress={() => setConsentStep(3)}>I understand, continue</Button>
                   </div>
                 </>
               )}
-
               {consentStep === 3 && (
                 <>
                   <h2 className="text-[20px] font-bold text-foreground">You're submitting with these considerations</h2>
-
                   <div className="mt-5 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-foreground" aria-hidden="true" />
-                      <p className="text-[14px] text-foreground">{IMPACT_MAP.length} criteria may be impacted</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-foreground" aria-hidden="true" />
-                      <p className="text-[14px] text-foreground">Up to {IMPACT_MAP.reduce((sum, i) => sum + parseInt(i.weight), 0)}% of your evaluation may be affected</p>
-                    </div>
+                    <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-foreground" aria-hidden="true" /><p className="text-[14px] text-foreground">{IMPACT_MAP.length} criteria may be impacted</p></div>
+                    <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-foreground" aria-hidden="true" /><p className="text-[14px] text-foreground">Up to {IMPACT_MAP.reduce((sum, i) => sum + parseInt(i.weight), 0)}% of your evaluation may be affected</p></div>
                   </div>
-
-                  <p className="text-[14px] text-muted mt-5 leading-relaxed">
-                    You understand that some parts of your work may not be evaluated fully.
-                  </p>
-
-                  <p className="text-[12px] text-muted/60 mt-3">
-                    Your decision will be recorded with this submission.
-                  </p>
-
+                  <p className="text-[14px] text-muted mt-5 leading-relaxed">You understand that some parts of your work may not be evaluated fully.</p>
+                  <p className="text-[12px] text-muted/60 mt-3">Your decision will be recorded with this submission.</p>
                   <div className="mt-6 flex items-center justify-end gap-3">
-                    <Button variant="ghost" size="sm" className="rounded-lg" onPress={() => setConsentStep(2)}>
-                      Review once more
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="rounded-lg px-5 font-semibold"
-                      onPress={() => {
-                        setShowConsent(false)
-                        navigate('/consent/reconsideration', { state: { warnings: issues, deadline } })
-                      }}
-                    >
-                      Submit now
-                    </Button>
+                    <Button variant="ghost" size="sm" className="rounded-lg" onPress={() => setConsentStep(2)}>Review once more</Button>
+                    <Button variant="primary" size="sm" className="rounded-lg px-5 font-semibold" onPress={() => { setShowConsent(false); navigate('/consent/reconsideration', { state: { warnings: issues, deadline } }) }}>Submit now</Button>
                   </div>
                 </>
               )}
-
             </CardContent>
           </Card>
         </div>

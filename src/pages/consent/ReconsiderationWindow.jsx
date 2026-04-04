@@ -37,7 +37,7 @@ export default function ReconsiderationWindow() {
     <>
       <InnerPageBar title="Submission Sent" deadline={deadline} />
 
-      <div className="min-h-screen bg-surface-secondary flex items-center justify-center px-8 lg:px-10 py-8">
+      <div className="h-[calc(100vh-64px-53px)] bg-surface-secondary flex items-center justify-center px-8 lg:px-10 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

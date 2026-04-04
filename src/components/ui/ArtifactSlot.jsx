@@ -18,10 +18,11 @@
 
 import { useRef, useState, useEffect } from 'react'
 import { motion, useAnimation } from 'framer-motion'
-import { UploadCloud, CheckCircle2, XCircle, AlertTriangle, Loader2, ChevronDown } from 'lucide-react'
+import { UploadCloud, CheckCircle2, XCircle, AlertTriangle, Loader2 } from 'lucide-react'
 import { Button, Chip } from '@heroui/react'
 import FileTypeIcon from './FileTypeIcon'
 import ProgressBar from './ProgressBar'
+import OcrResultsModal from './OcrResultsModal'
 
 // ─── Format + size info per type (shown in empty drop zone) ──────────────────
 const TYPE_INFO = {
@@ -60,6 +61,7 @@ export default function ArtifactSlot({
   errorMessage = null,
   onFileSelect,
   onReplace,
+  onOcrComplete,
 }) {
   const { name, type, required } = artifact
 
@@ -74,7 +76,7 @@ export default function ArtifactSlot({
   const [ocrConfidence, setOcrConfidence] = useState(null)
   const [ocrProgress, setOcrProgress] = useState(0)
   const [ocrElapsed, setOcrElapsed] = useState(0)
-  const [showOcrPreview, setShowOcrPreview] = useState(false)
+  const [showOcrModal, setShowOcrModal] = useState(false)
 
   useEffect(() => {
     if (slotState === 'confirmed' && artifact.requiresOCR) {
@@ -97,6 +99,7 @@ export default function ArtifactSlot({
           clearInterval(elapsedInterval)
           setOcrState('complete')
           setOcrConfidence('high')
+          onOcrComplete?.(artifact.id, 'high')
         }
         setOcrProgress(Math.round(progress))
       }, 200)
@@ -110,7 +113,8 @@ export default function ArtifactSlot({
       setOcrState('idle')
       setOcrConfidence(null)
       setOcrProgress(0)
-      setShowOcrPreview(false)
+      setShowOcrModal(false)
+      onOcrComplete?.(artifact.id, null)
     }
   }, [slotState, artifact.requiresOCR])
 
@@ -160,7 +164,7 @@ export default function ArtifactSlot({
   // Card border + bg
   const cardClass = (() => {
     if (slotState === 'uploading')  return 'rounded-xl bg-white border border-accent'
-    if (slotState === 'confirmed')  return 'rounded-xl bg-success-soft border border-success'
+    if (slotState === 'confirmed')  return 'rounded-xl bg-white border border-border'
     if (slotState === 'error')      return 'rounded-xl bg-white border border-danger'
     // empty
     if (required) {
@@ -299,19 +303,22 @@ export default function ArtifactSlot({
   function renderUploading() {
     return (
       <div className={`${cardClass} p-4`}>
-        <div className="flex items-center gap-3">
-          <FileTypeIcon type={type} size={32} />
+        {/* Same header as empty state */}
+        {renderHeader()}
+
+        {/* Uploading file details */}
+        <div className="mt-3 flex items-center gap-3 p-3 rounded-lg bg-surface-secondary">
           <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-semibold text-foreground truncate leading-tight">
+            <p className="text-[13px] font-medium text-foreground truncate leading-tight">
               {fileName}
             </p>
           </div>
-          <span className="rounded-full bg-accent-soft text-accent text-xs font-bold px-2 py-0.5 shrink-0 leading-none">
+          <span className="rounded-full bg-accent-soft text-accent text-[11px] font-bold px-2 py-0.5 shrink-0 leading-none">
             Uploading…
           </span>
         </div>
 
-        <div className="mt-3">
+        <div className="mt-2">
           <ProgressBar
             progress={progress}
             colorClass="bg-accent"
@@ -327,24 +334,27 @@ export default function ArtifactSlot({
   function renderConfirmed() {
     return (
       <div className={`${cardClass} p-4`}>
-        <div className="flex items-center gap-3">
-          <FileTypeIcon type={type} size={32} />
+        {/* Same header as empty state — artifact name stays consistent */}
+        {renderHeader()}
+
+        {/* Uploaded file details */}
+        <div className="mt-3 flex items-center gap-3 p-3 rounded-lg bg-surface-secondary">
           <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-semibold text-foreground truncate leading-tight">
+            <p className="text-[13px] font-medium text-foreground truncate leading-tight">
               {fileName}
             </p>
             {fileSize && (
-              <p className="text-[12px] text-muted mt-0.5">{fileSize}</p>
+              <p className="text-[11px] text-muted mt-0.5">{fileSize}</p>
             )}
           </div>
           <CheckCircle2
-            className="w-5 h-5 text-success shrink-0"
+            className="w-4 h-4 text-success shrink-0"
             strokeWidth={2}
             aria-hidden="true"
           />
         </div>
 
-        {/* Replace button — min 44px touch target */}
+        {/* Replace button */}
         <div className="mt-1">
           <Button
             variant="ghost"
@@ -379,6 +389,7 @@ export default function ArtifactSlot({
           </div>
         )}
 
+        {/* OCR complete — inline status + "View extracted text" modal trigger */}
         {artifact.requiresOCR && ocrState === 'complete' && ocrConfidence === 'high' && (
           <div className="mt-3">
             <div className="flex items-center justify-between">
@@ -390,51 +401,74 @@ export default function ArtifactSlot({
             </div>
             <button
               type="button"
-              onClick={() => setShowOcrPreview(!showOcrPreview)}
+              onClick={() => setShowOcrModal(true)}
               className="mt-2 text-[12px] font-medium text-purple hover:underline flex items-center gap-1 min-h-[44px]"
             >
-              {showOcrPreview ? 'Hide' : 'View'} extracted text
-              <ChevronDown className={`w-3 h-3 transition-transform ${showOcrPreview ? 'rotate-180' : ''}`} aria-hidden="true" />
+              View extracted text
             </button>
-            {showOcrPreview && (
-              <div className="mt-1 p-4 rounded-lg border border-border bg-white">
-                <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-2">Extracted Text</p>
-                <p className="text-[13px] text-foreground leading-relaxed">
-                  This assignment <span className="bg-success-soft px-0.5 rounded">analyses</span> the strategic challenges facing Tesla Inc. in the European market, focusing on <span className="bg-success-soft px-0.5 rounded">supply chain disruptions</span> and regulatory compliance. The recommended approach involves a <span className="bg-warning-soft px-0.5 rounded">phased market</span> entry strategy with emphasis on local manufacturing partnerships and <span className="bg-success-soft px-0.5 rounded">sustainability</span> initiatives.
-                </p>
-                <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-[11px] text-muted">
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success" aria-hidden="true" /> High confidence</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-warning" aria-hidden="true" /> Uncertain</span>
-                  </div>
-                  <span className="text-[11px] text-muted">42 words extracted</span>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
         {artifact.requiresOCR && ocrState === 'complete' && ocrConfidence === 'medium' && (
-          <div className="mt-3 rounded-lg border border-warning bg-warning-soft p-3">
-            <div className="flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-warning" aria-hidden="true" />
-              <span className="text-[12px] font-semibold text-warning">Some parts may be hard to read</span>
+          <div className="mt-3">
+            <div className="rounded-lg border border-warning p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-warning" aria-hidden="true" />
+                  <span className="text-[12px] font-semibold text-warning">Some words were unclear</span>
+                </div>
+                <span className="text-[11px] font-medium text-warning">Confidence: 62%</span>
+              </div>
+              <p className="text-[11px] text-muted mt-1.5 leading-snug">
+                We could read most of your handwriting, but some words were unclear.
+              </p>
             </div>
-            <p className="text-[11px] text-muted mt-1">Check your photo quality. Consider re-uploading if text is unclear.</p>
-            <button type="button" onClick={onReplace} className="mt-2 text-[12px] font-semibold text-warning hover:underline min-h-11">
+            <button
+              type="button"
+              onClick={() => setShowOcrModal(true)}
+              className="mt-2 text-[12px] font-medium text-purple hover:underline flex items-center gap-1 min-h-[44px]"
+            >
+              View extracted text
+            </button>
+            <button type="button" onClick={onReplace} className="mt-1 text-[12px] font-semibold text-warning hover:underline min-h-11">
               Re-upload a clearer photo
             </button>
           </div>
         )}
 
         {artifact.requiresOCR && ocrState === 'complete' && ocrConfidence === 'low' && (
-          <div className="mt-3 rounded-lg border border-danger bg-danger-soft p-3">
-            <div className="flex items-center gap-1.5">
-              <XCircle className="w-3.5 h-3.5 text-danger" aria-hidden="true" />
-              <span className="text-[12px] font-semibold text-danger">Parts may be unreadable</span>
+          <div className="mt-3">
+            {artifact.required && (
+              <div className="rounded-lg border border-warning bg-warning-soft p-3 mb-2">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" aria-hidden="true" />
+                  <div>
+                    <p className="text-[12px] font-semibold text-foreground">This file is required for your submission</p>
+                    <p className="text-[11px] text-muted mt-0.5">Please re-upload a clearer photo to continue.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="rounded-lg border border-danger p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <XCircle className="w-3.5 h-3.5 text-danger" aria-hidden="true" />
+                  <span className="text-[12px] font-semibold text-danger">Text is difficult to read</span>
+                </div>
+                <span className="text-[11px] font-medium text-danger">Confidence: 28%</span>
+              </div>
+              <p className="text-[11px] text-muted mt-1.5 leading-snug">
+                We couldn't clearly read the text in this document. Please upload a clearer image so we can process your submission.
+              </p>
             </div>
-            <p className="text-[11px] text-muted mt-1">Try a clearer photo in better lighting. The AI may not be able to read this.</p>
-            <button type="button" onClick={onReplace} className="mt-2 text-[12px] font-semibold text-danger hover:underline min-h-11">
+            <button
+              type="button"
+              onClick={() => setShowOcrModal(true)}
+              className="mt-2 text-[12px] font-medium text-purple hover:underline flex items-center gap-1 min-h-[44px]"
+            >
+              View what we found
+            </button>
+            <button type="button" onClick={onReplace} className="mt-1 text-[12px] font-semibold text-danger hover:underline min-h-11">
               Re-upload a clearer photo
             </button>
           </div>
@@ -520,6 +554,20 @@ export default function ArtifactSlot({
       {slotState === 'uploading' && renderUploading()}
       {slotState === 'confirmed' && renderConfirmed()}
       {slotState === 'error'     && renderError()}
+
+      {/* OCR Results Modal */}
+      {artifact.requiresOCR && (
+        <OcrResultsModal
+          isOpen={showOcrModal}
+          onClose={() => setShowOcrModal(false)}
+          confidence={ocrConfidence}
+          onConfidenceChange={(level) => {
+            setOcrConfidence(level)
+            onOcrComplete?.(artifact.id, level)
+          }}
+          fileName={fileName}
+        />
+      )}
     </>
   )
 }

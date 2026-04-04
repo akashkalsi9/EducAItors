@@ -10,6 +10,7 @@
  * Props:
  *   confidence    — 'high' | 'medium' | 'low'
  *   extractedText — array of { word: string, conf: 'high' | 'medium' | 'low' }
+ *   forceOpen     — boolean, when true keeps accordion always open and hides toggle
  */
 
 import { useState, useEffect } from 'react'
@@ -27,46 +28,49 @@ const WORD_BG = {
 export default function ExtractedTextAccordion({
   confidence    = 'high',
   extractedText = [],
+  forceOpen     = false,
 }) {
   // Medium/low start expanded so the problem is immediately visible
-  const [isOpen, setIsOpen] = useState(confidence !== 'high')
+  const [isOpen, setIsOpen] = useState(forceOpen || confidence !== 'high')
 
   // Sync open state when confidence changes (e.g. via demo controls)
   useEffect(() => {
-    setIsOpen(confidence !== 'high')
-  }, [confidence])
+    setIsOpen(forceOpen || confidence !== 'high')
+  }, [confidence, forceOpen])
 
   return (
     <div className="rounded-xl border border-border bg-white overflow-hidden">
 
-      {/* ── Header — tap to toggle ── */}
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="w-full min-h-[44px] flex items-center justify-between px-4 py-3 text-left"
-        aria-expanded={isOpen}
-        aria-label={isOpen ? 'Collapse extracted text' : 'Expand extracted text'}
-      >
-        <div className="flex items-center gap-2">
-          <Eye
-            className="w-4 h-4 text-purple shrink-0"
-            strokeWidth={2}
-            aria-hidden="true"
-          />
-          <span className="text-[13px] font-bold text-foreground">
-            What we extracted
-          </span>
-        </div>
-        <motion.div
-          animate={{ rotate: isOpen ? 0 : 0 }}
-          transition={{ duration: 0.2 }}
+      {/* ── Header — tap to toggle (hidden when forceOpen) ── */}
+      {!forceOpen && (
+        <button
+          type="button"
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="w-full min-h-[44px] flex items-center justify-between px-4 py-3 text-left"
+          aria-expanded={isOpen}
+          aria-label={isOpen ? 'Collapse extracted text' : 'Expand extracted text'}
         >
-          {isOpen
-            ? <ChevronUp  className="w-4 h-4 text-muted" strokeWidth={2} aria-hidden="true" />
-            : <ChevronDown className="w-4 h-4 text-muted" strokeWidth={2} aria-hidden="true" />
-          }
-        </motion.div>
-      </button>
+          <div className="flex items-center gap-2">
+            <Eye
+              className="w-4 h-4 text-purple shrink-0"
+              strokeWidth={2}
+              aria-hidden="true"
+            />
+            <span className="text-[13px] font-bold text-foreground">
+              What we extracted
+            </span>
+          </div>
+          <motion.div
+            animate={{ rotate: isOpen ? 0 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {isOpen
+              ? <ChevronUp  className="w-4 h-4 text-muted" strokeWidth={2} aria-hidden="true" />
+              : <ChevronDown className="w-4 h-4 text-muted" strokeWidth={2} aria-hidden="true" />
+            }
+          </motion.div>
+        </button>
+      )}
 
       {/* ── Body — extracted text with word highlights ── */}
       <AnimatePresence initial={false}>
@@ -79,7 +83,7 @@ export default function ExtractedTextAccordion({
             transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-border px-4 pt-3 pb-4">
+            <div className={`${forceOpen ? '' : 'border-t border-border'} px-4 pt-3 pb-4`}>
               {extractedText.length === 0 ? (
                 <p className="text-[13px] text-muted italic">
                   No text could be extracted.

@@ -12,7 +12,7 @@
  */
 
 import { useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, FolderOpen, BarChart2, HelpCircle, LogOut } from 'lucide-react'
+import { LayoutDashboard, BookOpen, FolderOpen, BarChart2, Ticket, HelpCircle, LogOut } from 'lucide-react'
 
 // ─── Nav definitions ──────────────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { id: 'modules',     label: 'Modules',      Icon: FolderOpen,      route: '/status',       isActive: (p) => p.startsWith('/status')  },
   { id: 'assignments', label: 'Assignments',  Icon: BookOpen,        route: '/',             isActive: (p) => p === '/' || p.startsWith('/submit') || p.startsWith('/result') || p.startsWith('/consent') || p.startsWith('/fix') || p === '/orientation' },
   { id: 'results',     label: 'Results',      Icon: BarChart2,       route: '/result/ready', isActive: () => false  },
+  { id: 'tickets',     label: 'Support Tickets', Icon: Ticket,     route: '/tickets',      isActive: (p) => p.startsWith('/tickets') },
 ]
 
 // ─── Single nav item ──────────────────────────────────────────────────────────

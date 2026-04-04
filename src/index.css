@@ -69,7 +69,7 @@
 
 /* ── AI gradient text utility ────────────────────────────────────────────── */
 @utility ai-gradient-text {
-  background: linear-gradient(135deg, #1F4E8C 0%, #22C55E 100%);
+  background: linear-gradient(135deg, #1F4E8C 0%, #3B82F6 50%, #06B6D4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

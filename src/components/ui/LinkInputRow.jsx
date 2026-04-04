@@ -156,12 +156,12 @@ export default function LinkInputRow({
 
   // ── Visual state ──────────────────────────────────────────────────────────
   const containerClass = (() => {
-    if (status === 'checking')           return 'border border-accent bg-accent-soft'
-    if (status === 'accessible')         return 'border border-success bg-success-soft'
-    if (status === 'empty-link')         return 'border border-warning bg-warning-soft'
+    if (status === 'checking')           return 'border border-accent bg-white'
+    if (status === 'accessible')         return 'border border-border bg-white'
+    if (status === 'empty-link')         return 'border border-warning bg-white'
     if (status === 'acknowledged')       return 'border border-warning bg-white'
-    if (status === 'permission-blocked') return 'border border-danger bg-danger-soft'
-    if (status === 'broken')             return 'border border-danger bg-danger-soft'
+    if (status === 'permission-blocked') return 'border border-danger bg-white'
+    if (status === 'broken')             return 'border border-danger bg-white'
     if (status === 'format-error')       return 'border border-danger bg-white'
     return 'border border-border bg-white' // idle
   })()
