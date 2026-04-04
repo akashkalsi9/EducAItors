@@ -17,8 +17,8 @@ import { LayoutDashboard, BookOpen, FolderOpen, BarChart2, Ticket, User, HelpCir
 
 // ─── Nav definitions ──────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { id: 'dashboard',   label: 'Dashboard',       Icon: LayoutDashboard, route: '/',             isActive: (p) => p === '/' || p === '/assignment' || p.startsWith('/submit') || p.startsWith('/result') || p.startsWith('/consent') || p.startsWith('/fix') || p === '/orientation'  },
-  { id: 'modules',     label: 'Modules',          Icon: FolderOpen,      route: '/status',       isActive: (p) => p.startsWith('/status')  },
+  { id: 'dashboard',   label: 'Dashboard',       Icon: LayoutDashboard, route: '/',             isActive: (p) => p === '/' || p === '/assignment' || p.startsWith('/submit') || p.startsWith('/result') || p.startsWith('/consent') || p.startsWith('/fix') || p === '/orientation' || p.startsWith('/status')  },
+  { id: 'modules',     label: 'Modules',          Icon: FolderOpen,      route: '/status',       isActive: () => false  },
   { id: 'assignments', label: 'Assignments',      Icon: BookOpen,        route: '/assignment',   isActive: () => false },
   { id: 'results',     label: 'Results',          Icon: BarChart2,       route: '/result/ready', isActive: () => false  },
   { id: 'tickets',     label: 'Support Tickets',  Icon: Ticket,          route: '/tickets',      isActive: (p) => p.startsWith('/tickets') },
