@@ -1,43 +1,32 @@
-// Screen 1.1 — Assignment Entry (web-first, HeroUI-compliant)
+// Dashboard — Academic overview + current assignment card
 // Route: /
 
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Button, Card, CardContent, Chip } from '@heroui/react'
 import {
-  Button,
-  Card, CardContent,
-  Chip,
-  Tabs, Tab, TabList, TabListContainer, TabPanel, TabIndicator, TabSeparator,
-} from '@heroui/react'
-import {
-  Clock, Calendar, Info, Download,
-  FileText, Table2, Monitor, Camera,
-  Link2, Pen, HardDrive, GitBranch,
+  Clock, BookOpen, ArrowRight, ExternalLink,
+  FileText, Award, MessageSquare, Calendar,
 } from 'lucide-react'
-import OrientationPanel from '../components/OrientationPanel'
-import PageBreadcrumb from '../components/ui/PageBreadcrumb'
+import InnerPageBar from '../components/ui/InnerPageBar'
 import { mockAssignment } from '../data/mock-assignment'
+import { mockStudent, mockCourse, mockGrades, mockActivity, mockQuickLinks } from '../data/mock-dashboard'
 import { useCountdown } from '../hooks/useCountdown'
 
-// ─── File type config ─────────────────────────────────────────────────────────
-const FILE_TYPE = {
-  pdf:         { Icon: FileText, bg: 'bg-accent-soft',  color: 'text-accent',   label: 'PDF · Max 50MB'       },
-  xlsx:        { Icon: Table2,   bg: 'bg-teal-soft',    color: 'text-teal',     label: 'XLSX · Max 20MB'      },
-  pptx:        { Icon: Monitor,  bg: 'bg-pink-soft',    color: 'text-pink',     label: 'PPTX · Max 100MB'     },
-  docx:        { Icon: FileText, bg: 'bg-info-soft',    color: 'text-info',     label: 'DOCX · Max 20MB'      },
-  handwritten: { Icon: Camera,   bg: 'bg-purple-soft',  color: 'text-purple',   label: 'JPG / PNG · Max 10MB' },
+// ─── Grade band colors ──────────────────────────────────────────────────────
+const GRADE_COLOR = {
+  graded:  'text-success',
+  pending: 'text-muted',
 }
 
-// ─── Link platform config ────────────────────────────────────────────────────
-const LINK_PLATFORM = {
-  'Figma':        { Icon: Pen,        bg: 'bg-pink-soft',   color: 'text-pink'   },
-  'Google Drive': { Icon: HardDrive,  bg: 'bg-teal-soft',   color: 'text-teal'   },
-  'GitHub':       { Icon: GitBranch,  bg: 'bg-purple-soft', color: 'text-purple' },
-  'Generic':      { Icon: Link2,      bg: 'bg-info-soft',   color: 'text-info'   },
+const ACTIVITY_ICON = {
+  announcement: MessageSquare,
+  content:      BookOpen,
+  grade:        Award,
+  deadline:     Clock,
 }
 
-// ─── Status chip config ───────────────────────────────────────────────────────
+// ─── Status chip config ─────────────────────────────────────────────────────
 const STATUS_CHIP = {
   'not-started':         { color: 'default', variant: 'secondary', label: 'Not started'         },
   'in-progress':         { color: 'warning', variant: 'soft',      label: 'In progress'         },
@@ -45,372 +34,223 @@ const STATUS_CHIP = {
   'resubmission-needed': { color: 'danger',  variant: 'soft',      label: 'Resubmission needed' },
 }
 
-// ─── Instructor honorific prefixes ────────────────────────────────────────────
-
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [showOrientation, setShowOrientation] = useState(false)
-
-  const {
-    title, courseName, instructorName, deadline,
-    submissionStatus, requiredArtifacts, requiredLinks, optionalLinks, rubric, brief,
-  } = mockAssignment
-
+  const { title, deadline, submissionStatus, instructorName } = mockAssignment
   const { days, hours, minutes, totalHours, expired } = useCountdown(deadline)
 
-  // Deadline countdown color class
   const countdownColorClass = (expired || totalHours < 2)
     ? 'text-danger'
-    : totalHours < 24
-    ? 'text-warning'
-    : 'text-accent'
-
-  // Deadline card top border
-  const deadlineTopBorder = (expired || totalHours < 2)
-    ? 'border-t-4 border-danger'
-    : totalHours < 24
-    ? 'border-t-4 border-warning'
-    : 'border-t-4 border-accent'
+    : totalHours < 24 ? 'text-warning' : 'text-accent'
 
   const countdownLabel = expired ? 'Overdue'
-    : days > 0  ? `${days}d ${hours}h`
-    :              `${totalHours}h ${minutes}m`
+    : days > 0 ? `${days}d ${hours}h left`
+    : `${totalHours}h ${minutes}m left`
 
-  const deadlineTime = new Date(deadline).toLocaleTimeString('en-US', {
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  })
-
-  const formattedDeadlineFull = new Date(deadline).toLocaleString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  })
-
-  const requiredCount  = requiredArtifacts.filter((a) =>  a.required).length
-  const optionalCount  = requiredArtifacts.filter((a) => !a.required).length
-
-  // Breadcrumb: shorten title to first segment
-  const shortTitle = title.replace(/\s*—.*$/, '').trim()
-
-  // Status chip config
   const sc = STATUS_CHIP[submissionStatus] ?? STATUS_CHIP['not-started']
-
-  // Deadline urgency pill classes (meta row)
-  const urgentPillClass = (expired || totalHours < 2)
-    ? 'bg-danger-soft text-danger'
-    : 'bg-warning-soft text-warning'
+  const shortTitle = title.replace(/\s*—.*$/, '').trim()
 
   return (
     <>
-      {/* ── Full-width breadcrumb bar ──────────────────────────────────────── */}
-      <div className="sticky top-16 z-40 bg-white border-b border-border px-8 lg:px-10 py-4 flex items-center justify-between">
-        <PageBreadcrumb
-          items={[
-            { label: 'Assignments', href: '/' },
-            { label: shortTitle },
-          ]}
-        />
-        <button
-          type="button"
-          onClick={() => setShowOrientation(true)}
-          className="flex items-center gap-1.5 text-[13px] font-medium text-info hover:underline shrink-0 min-h-[44px]"
-          aria-label="Open first-time submission walkthrough"
-        >
-          <Info className="w-4 h-4 shrink-0" strokeWidth={2} aria-hidden="true" />
-          First time? Take the walkthrough
-        </button>
-      </div>
+      <InnerPageBar
+        title="Dashboard"
+        breadcrumbItems={[{ label: 'Dashboard' }]}
+      />
 
-      {/* ── Page canvas ───────────────────────────────────────────────────── */}
       <div className="min-h-screen bg-surface-secondary px-8 lg:px-10 py-8">
+        <div className="max-w-6xl mx-auto space-y-6">
 
-        {/* ── Two-column layout ─────────────────────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
-
-          {/* ══ LEFT COLUMN — Hero + Deadline + CTA + Tip ═══════════════════ */}
-          <div className="w-full lg:w-80 shrink-0 flex flex-col gap-4">
-
-            {/* Hero card */}
+          {/* ── WELCOME BANNER ─────────────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
             <Card className="rounded-xl border border-border p-0 gap-0">
-              <CardContent className="p-5 gap-0">
-                <h1 className="text-[20px] font-extrabold text-foreground tracking-tight leading-tight">
-                  {title}
-                </h1>
-                <p className="text-[13px] text-muted mt-1.5 leading-snug">
-                  Analyse a real-world strategic challenge using Module 3 frameworks and recommend a course of action.
-                </p>
-                <div className="mt-2">
-                  <Chip variant={sc.variant} color={sc.color} size="sm">{sc.label}</Chip>
+              <CardContent className="px-6 py-4 gap-0">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-[20px] font-bold text-foreground">
+                    Welcome back, {mockStudent.firstName}
+                  </h1>
+                  <Chip variant="soft" color="accent" size="sm">{mockCourse.currentModule}</Chip>
                 </div>
-                <div className="h-px bg-border my-4" />
-                <div className="flex items-center gap-2">
-                  <Chip variant="soft" color="accent" size="sm">Prof</Chip>
-                  <span className="text-sm font-medium text-muted">{instructorName}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Deadline + CTA card */}
-            <Card className="rounded-xl border border-border p-0 gap-0">
-              <CardContent className="p-5 gap-0">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-muted">
-                  Submission Deadline
-                </p>
-                <div className="mt-2 mb-1">
-                  <span className={`text-4xl font-extrabold leading-none tracking-tight ${countdownColorClass}`}>
-                    {countdownLabel}
-                  </span>
-                </div>
-                <p className="text-sm text-muted">remaining</p>
-                <div className="h-px bg-border my-4" />
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-3.5 h-3.5 text-muted shrink-0" strokeWidth={1.75} aria-hidden="true" />
-                  <div>
-                    <span className="text-xs font-medium text-muted">Due </span>
-                    <span className="text-sm font-semibold text-foreground">{formattedDeadlineFull}</span>
-                  </div>
-                </div>
-                <div className="h-px bg-border my-4" />
-                <motion.div whileTap={{ scale: 0.97 }}>
-                  <Button
-                    variant="primary"
-                    fullWidth
-                    size="lg"
-                    className="rounded-xl"
-                    onPress={() => navigate('/submit')}
-                  >
-                    Start submission
-                  </Button>
-                </motion.div>
-                <p className="text-xs text-muted text-center mt-3">
-                  Your work is saved between sessions.
+                <p className="text-[13px] text-muted mt-0.5">
+                  {mockCourse.name} · {mockCourse.semester}
                 </p>
               </CardContent>
             </Card>
+          </motion.div>
 
-            {/* Download assignment pack */}
-            <Button
-              variant="outline"
-              fullWidth
-              size="lg"
-              className="rounded-xl gap-2"
-              onPress={() => {}}
-              aria-label="Download assignment pack"
-            >
-              <Download className="w-3.5 h-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
-              Download assignment pack
-            </Button>
+          {/* ── TWO-COLUMN LAYOUT ──────────────────────────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          </div>
+            {/* ══ LEFT COLUMN (2/3) ════════════════════════════════════ */}
+            <div className="lg:col-span-2 space-y-6">
 
-          {/* ══ RIGHT COLUMN — Tabs (main content area) ═════════════════════ */}
-          <div className="flex-1 min-w-0">
-
-            <Card className="rounded-xl border border-border p-0 gap-0">
-              <Tabs defaultSelectedKey="brief" className="w-full">
-                <div className="px-6 pt-4 pb-2">
-                  <TabListContainer>
-                    <TabList aria-label="Assignment sections">
-                      <Tab id="brief">
-                        Assignment Brief
-                        <TabIndicator />
-                      </Tab>
-                      <Tab id="submit">
-                        <TabSeparator />
-                        What to Submit
-                        <TabIndicator />
-                      </Tab>
-                      <Tab id="rubric">
-                        <TabSeparator />
-                        Grading Rubric
-                        <TabIndicator />
-                      </Tab>
-                    </TabList>
-                  </TabListContainer>
-                </div>
-
-                {/* ── Tab 1: Assignment Brief ────────────────────────────── */}
-                <TabPanel id="brief" className="p-0 mt-0">
-                  <CardContent className="px-6 py-6 flex flex-col gap-6">
-
-                    <p className="text-sm text-muted leading-relaxed">
-                      {brief.overview}
-                    </p>
-
-                    <p className="text-sm text-muted leading-relaxed border-l-4 border-border pl-4">
-                      {brief.context}
-                    </p>
-
-                    <div>
-                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted mb-3">
-                        Learning Objectives
-                      </p>
-                      <ul className="flex flex-col gap-2">
-                        {brief.objectives.map((obj, i) => (
-                          <li key={i} className="flex items-start gap-3">
-                            <span className="w-5 h-5 rounded-full bg-purple-soft flex items-center justify-center shrink-0 mt-0.5" aria-hidden="true">
-                              <span className="text-[10px] font-bold text-purple">{i + 1}</span>
-                            </span>
-                            <span className="text-sm text-muted leading-snug">{obj}</span>
-                          </li>
-                        ))}
-                      </ul>
+              {/* Current Assignment Card */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+              >
+                <Card className="rounded-xl border border-border p-0 gap-0 hover:shadow-md transition-shadow">
+                  <CardContent className="p-6 gap-0">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted">Current Assignment</p>
+                      <Chip variant={sc.variant} color={sc.color} size="sm">{sc.label}</Chip>
                     </div>
 
-                    <div className="bg-warning-soft rounded-xl p-4">
-                      <p className="text-xs text-foreground leading-relaxed">
-                        <span className="font-semibold text-warning">Note: </span>
-                        {brief.notes}
-                      </p>
+                    <h2 className="text-[18px] font-bold text-foreground leading-snug">{title}</h2>
+                    <p className="text-[13px] text-muted mt-1.5 leading-relaxed">
+                      Analyse a real-world strategic challenge using Module 3 frameworks and recommend a course of action.
+                    </p>
+
+                    <div className="flex items-center gap-4 mt-4 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className={`w-4 h-4 ${countdownColorClass}`} strokeWidth={2} aria-hidden="true" />
+                        <span className={`text-[13px] font-semibold ${countdownColorClass}`}>{countdownLabel}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Chip variant="soft" color="accent" size="sm">Prof</Chip>
+                        <span className="text-[13px] text-muted">{instructorName}</span>
+                      </div>
                     </div>
 
+                    <div className="mt-5">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="rounded-lg px-5 gap-2 font-semibold"
+                        onPress={() => navigate('/assignment')}
+                      >
+                        View assignment
+                        <ArrowRight className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+                      </Button>
+                    </div>
                   </CardContent>
-                </TabPanel>
+                </Card>
+              </motion.div>
 
-                {/* ── Tab 2: What to Submit ──────────────────────────────── */}
-                <TabPanel id="submit" className="p-0 mt-0">
-
-                  {/* Files section */}
-                  <div className="px-6 py-3 border-b border-border">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-muted">
-                      Files
-                    </span>
+              {/* Recent Activity */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+              >
+                <Card className="rounded-xl border border-border p-0 gap-0">
+                  <div className="px-6 py-4 border-b border-border">
+                    <h2 className="text-[15px] font-bold text-foreground">Recent Activity</h2>
                   </div>
-                  {requiredArtifacts.map((artifact, i) => {
-                    const cfg    = FILE_TYPE[artifact.type] ?? FILE_TYPE.docx
-                    const isReq  = artifact.required
-                    const isLast = i === requiredArtifacts.length - 1
-                    const deliverable = brief.deliverables.find(d => d.label.toLowerCase().includes(artifact.name.toLowerCase().split(' ')[0]))
+                  {mockActivity.map((item, i) => {
+                    const Icon = ACTIVITY_ICON[item.type] ?? MessageSquare
                     return (
                       <div
-                        key={artifact.id}
-                        className={`flex items-start gap-4 px-6 py-4 hover:bg-surface-secondary transition-colors ${!isLast ? 'border-b border-border' : ''} ${!isReq ? 'opacity-60' : ''}`}
+                        key={item.id}
+                        className={`flex items-center gap-3 px-6 py-3.5 ${i < mockActivity.length - 1 ? 'border-b border-border' : ''}`}
                       >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${cfg.bg}`} aria-hidden="true">
-                          <cfg.Icon className={`w-5 h-5 ${cfg.color}`} strokeWidth={1.75} aria-hidden="true" />
+                        <div className="w-8 h-8 rounded-full bg-surface-secondary flex items-center justify-center shrink-0">
+                          <Icon className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className={`text-[14px] leading-snug ${isReq ? 'font-semibold text-foreground' : 'font-normal text-muted'}`}>
-                              {artifact.name}
-                            </p>
-                            {isReq
-                              ? <Chip variant="soft" color="warning" size="sm" className="shrink-0">Required</Chip>
-                              : <Chip variant="soft" color="default" size="sm" className="shrink-0">Optional</Chip>
-                            }
-                          </div>
-                          {deliverable && (
-                            <p className="text-[12px] text-muted mt-1 leading-snug">{deliverable.detail}</p>
-                          )}
-                          <p className="text-[11px] text-muted mt-1">{cfg.label}</p>
-                        </div>
+                        <p className="text-[13px] text-foreground flex-1">{item.text}</p>
+                        <span className="text-[11px] text-muted shrink-0">{item.time}</span>
                       </div>
                     )
                   })}
+                </Card>
+              </motion.div>
+            </div>
 
-                  {/* External links section */}
-                  <div className="px-6 py-3 border-y border-border">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-muted">
-                      External Links
-                    </span>
+            {/* ══ RIGHT COLUMN (1/3) ═══════════════════════════════════ */}
+            <div className="space-y-6">
+
+              {/* Academic Overview */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.15 }}
+              >
+                <Card className="rounded-xl border border-border p-0 gap-0">
+                  <div className="px-6 py-4 border-b border-border">
+                    <h2 className="text-[15px] font-bold text-foreground">Academic Overview</h2>
                   </div>
-                  {[...requiredLinks, ...optionalLinks].map((link, i, arr) => {
-                    const cfg    = LINK_PLATFORM[link.platform] ?? LINK_PLATFORM.Generic
-                    const isLast = i === arr.length - 1
-                    return (
-                      <div
-                        key={link.id}
-                        className={`flex items-center gap-4 px-6 py-3.5 hover:bg-surface-secondary transition-colors ${!isLast ? 'border-b border-border' : ''} ${!link.required ? 'opacity-60' : ''}`}
-                      >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${cfg.bg}`} aria-hidden="true">
-                          <cfg.Icon className={`w-5 h-5 ${cfg.color}`} strokeWidth={1.75} aria-hidden="true" />
+                  <CardContent className="p-0 gap-0">
+                    <div className="flex flex-col divide-y divide-border">
+                      {[
+                        { label: 'Course', value: mockCourse.name },
+                        { label: 'Code', value: mockCourse.code },
+                        { label: 'Semester', value: mockCourse.semester },
+                        { label: 'Module', value: mockCourse.currentModule },
+                        { label: 'Credits', value: String(mockCourse.credits) },
+                        { label: 'Instructor', value: mockCourse.instructor },
+                      ].map((row, i) => (
+                        <div key={i} className="flex items-center justify-between px-6 py-3">
+                          <span className="text-[12px] text-muted">{row.label}</span>
+                          <span className="text-[13px] font-medium text-foreground text-right">{row.value}</span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-[15px] leading-snug truncate ${link.required ? 'font-semibold text-foreground' : 'font-normal text-muted'}`}>
-                            {link.name}
-                          </p>
-                          <p className="text-xs text-muted mt-0.5">{link.platform}</p>
-                        </div>
-                        {link.required
-                          ? <Chip variant="soft" color="warning" size="sm">Required</Chip>
-                          : <Chip variant="soft" color="default" size="sm">Optional</Chip>
-                        }
-                      </div>
-                    )
-                  })}
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-                </TabPanel>
-
-                {/* ── Tab 3: Grading Rubric ──────────────────────────────── */}
-                <TabPanel id="rubric" className="p-0 mt-0">
-                  {/* Scoring legend */}
-                  <div className="px-6 py-3 border-b border-border bg-surface-secondary">
-                    <p className="text-[11px] text-muted">
-                      <span className="font-semibold">Scoring:</span> 10 = Exceeds · 8 = Meets · 6 = Minor issues · 4 = Below · 2 = Significant issues
-                    </p>
+              {/* Grade Summary */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+              >
+                <Card className="rounded-xl border border-border p-0 gap-0">
+                  <div className="px-6 py-4 border-b border-border">
+                    <h2 className="text-[15px] font-bold text-foreground">Grade Summary</h2>
                   </div>
-
-                  {/* Criteria — all expanded */}
-                  {rubric.map((criterion, index) => (
-                    <div key={criterion.id} className={`px-6 py-4 ${index < rubric.length - 1 ? 'border-b border-border' : ''}`}>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-[14px] font-semibold text-foreground">{criterion.name}</span>
-                        <span className="text-[13px] font-bold text-accent">{criterion.weight}%</span>
+                  {mockGrades.map((grade, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-center justify-between px-6 py-3.5 ${i < mockGrades.length - 1 ? 'border-b border-border' : ''}`}
+                    >
+                      <div>
+                        <p className="text-[13px] font-medium text-foreground">{grade.module}</p>
+                        <p className="text-[11px] text-muted">{grade.title}</p>
                       </div>
-                      <div className="flex flex-col gap-1.5">
-                        {criterion.levels.map((lvl) => (
-                          <div key={lvl.score} className="flex items-start gap-3">
-                            <span className="shrink-0 w-6 h-5 flex items-center justify-center rounded bg-surface-secondary text-[11px] font-bold text-muted mt-0.5">
-                              {lvl.score}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-xs font-semibold text-foreground">{lvl.label} — </span>
-                              <span className="text-xs text-muted">{lvl.description}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      {grade.status === 'graded' ? (
+                        <div className="text-right">
+                          <p className="text-[15px] font-bold text-success">{grade.score}%</p>
+                          <p className="text-[11px] text-muted">{grade.band}</p>
+                        </div>
+                      ) : (
+                        <Chip variant="secondary" color="default" size="sm">Pending</Chip>
+                      )}
                     </div>
                   ))}
-                </TabPanel>
+                </Card>
+              </motion.div>
 
-              </Tabs>
-            </Card>
-
+              {/* Quick Links */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.25 }}
+              >
+                <Card className="rounded-xl border border-border p-0 gap-0">
+                  <div className="px-6 py-4 border-b border-border">
+                    <h2 className="text-[15px] font-bold text-foreground">Quick Links</h2>
+                  </div>
+                  {mockQuickLinks.map((link, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`w-full flex items-center justify-between px-6 py-3.5 text-left hover:bg-surface-secondary transition-colors ${i < mockQuickLinks.length - 1 ? 'border-b border-border' : ''}`}
+                    >
+                      <span className="text-[13px] font-medium text-accent">{link.label}</span>
+                      <ExternalLink className="w-3.5 h-3.5 text-muted" strokeWidth={2} aria-hidden="true" />
+                    </button>
+                  ))}
+                </Card>
+              </motion.div>
+            </div>
           </div>
-
         </div>
       </div>
-
-      {/* ── Orientation modal ──────────────────────────────────────────────── */}
-      {showOrientation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setShowOrientation(false)}
-            aria-hidden="true"
-          />
-          {/* Dialog */}
-          <Card className="relative z-10 max-w-2xl w-full mx-4 rounded-2xl border border-border p-0 gap-0 max-h-[85vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
-              <h2 className="text-lg font-bold text-foreground">Getting Started</h2>
-              <button
-                type="button"
-                onClick={() => setShowOrientation(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-muted hover:bg-surface-secondary hover:text-foreground transition-colors"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            <CardContent className="p-0 gap-0 overflow-y-auto bg-surface-secondary">
-              <OrientationPanel
-                onDismiss={() => setShowOrientation(false)}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </>
   )
 }

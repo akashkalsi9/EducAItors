@@ -34,8 +34,8 @@ export default function InnerPageBar({ title, deadline, breadcrumbItems }) {
     : `${minutes}m left`
 
   const items = breadcrumbItems ?? [
-    { label: 'Assignments', href: '/' },
-    { label: assignmentShortTitle, href: '/' },
+    { label: 'Dashboard', href: '/' },
+    { label: assignmentShortTitle, href: '/assignment' },
     { label: title ?? '' },
   ]
 

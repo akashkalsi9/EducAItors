@@ -38,7 +38,7 @@ export default function StatusDashboard() {
         title="Submission Confirmed"
         deadline={deadline}
         breadcrumbItems={[
-          { label: 'Assignments', href: '/' },
+          { label: 'Dashboard', href: '/' },
           { label: 'Submission Confirmed' },
         ]}
       />
@@ -49,15 +49,11 @@ export default function StatusDashboard() {
 
             {/* 1. SUCCESS BANNER */}
             <Card className="rounded-xl border border-border p-0 gap-0">
-              <CardContent className="p-6 lg:p-8 gap-0 flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-success-soft flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="w-6 h-6 text-success" aria-hidden="true" />
-                </div>
-                <div>
-                  <h1 className="text-[22px] font-bold text-foreground">Your submission is in</h1>
-                  <p className="text-[14px] text-muted mt-1.5 leading-relaxed">
-                    Your work has been submitted for evaluation. Your instructor will review it and provide feedback.
-                  </p>
+              <CardContent className="px-6 py-4 gap-0 flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-success shrink-0" aria-hidden="true" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-[15px] font-bold text-foreground">Your submission is in</span>
+                  <span className="text-[13px] text-muted ml-2">— your instructor will review it and provide feedback</span>
                 </div>
               </CardContent>
             </Card>

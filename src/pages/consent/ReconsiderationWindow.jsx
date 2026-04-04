@@ -89,7 +89,7 @@ export default function ReconsiderationWindow() {
                       variant="outline"
                       size="sm"
                       className="rounded-lg flex-1 gap-2"
-                      onPress={() => navigate('/result/analysis')}
+                      onPress={() => navigate('/result/summary')}
                     >
                       <Undo2 className="w-4 h-4" aria-hidden="true" />
                       Undo submission

@@ -1,59 +1,70 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import AppShell from './components/AppShell'
 
+import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import AssignmentDetail from './pages/AssignmentDetail'
 import Orientation from './pages/Orientation'
-import PrimaryUpload from './pages/submit/PrimaryUpload'
-import ArtifactUpload from './pages/submit/ArtifactUpload'
-import LinkSubmission from './pages/submit/LinkSubmission'
 import SubmitPage from './pages/submit/SubmitPage'
-// import OCRPreviewPage from './pages/submit/OCRPreviewPage'  // OCR moved to validation step
-// import SubmissionReview from './pages/submit/SubmissionReview'  // Review removed — Analysis Dashboard is the review
 import Validating from './pages/validation/Validating'
-// import ValidationReady from './pages/validation/ValidationReady'
-// import ValidationWarning from './pages/validation/ValidationWarning'
-// import ValidationBlocker from './pages/validation/ValidationBlocker'
-import AnalysisDashboard from './pages/validation/AnalysisDashboard'
+import SubmissionSummary from './pages/validation/SubmissionSummary'
 import ConsentScreen from './pages/consent/ConsentScreen'
 import ReconsiderationWindow from './pages/consent/ReconsiderationWindow'
 import TargetedFix from './pages/fix/TargetedFix'
 import ResubmitValidating from './pages/fix/ResubmitValidating'
 import StatusDashboard from './pages/StatusDashboard'
 
+// Simple auth check (prototype only — localStorage flag)
+function RequireAuth({ children }) {
+  const isAuth = localStorage.getItem('educaitors_auth') === 'true'
+  const location = useLocation()
+  if (!isAuth) return <Navigate to="/login" state={{ from: location }} replace />
+  return children
+}
+
 export default function App() {
   return (
     <BrowserRouter basename="/EducAItors">
-      <AppShell>
       <Routes>
-        {/* Screen 1.1 — Assignment Entry */}
-        <Route path="/" element={<Dashboard />} />
+        {/* Login — outside AppShell (no sidebar/header) */}
+        <Route path="/login" element={<Login />} />
 
-        {/* Screen 1.2 — First-Submission Orientation */}
-        <Route path="/orientation" element={<Orientation />} />
+        {/* All authenticated routes — wrapped in AppShell */}
+        <Route path="/*" element={
+          <RequireAuth>
+            <AppShell>
+              <Routes>
+                {/* Dashboard — academic overview */}
+                <Route path="/" element={<Dashboard />} />
 
-        {/* Screens 2.x — Submission Building */}
-        <Route path="/submit" element={<SubmitPage />} />
-        {/* <Route path="/submit/upload" element={<PrimaryUpload />} /> */}
-        {/* <Route path="/submit/artifacts" element={<ArtifactUpload />} /> */}
-        {/* <Route path="/submit/links" element={<LinkSubmission />} /> */}
-        {/* Review removed — Analysis Dashboard serves as the review */}
+                {/* Assignment detail — full brief, tabs, CTA */}
+                <Route path="/assignment" element={<AssignmentDetail />} />
 
-        {/* Screens 3.x — Validation & Decision */}
-        <Route path="/submit/validating" element={<Validating />} />
-        <Route path="/result/analysis" element={<AnalysisDashboard />} />
+                {/* Orientation walkthrough */}
+                <Route path="/orientation" element={<Orientation />} />
 
-        {/* Screens 4.x — Consent Flow */}
-        <Route path="/consent" element={<ConsentScreen />} />
-        <Route path="/consent/reconsideration" element={<ReconsiderationWindow />} />
+                {/* Submission building */}
+                <Route path="/submit" element={<SubmitPage />} />
 
-        {/* Screens 5.x — Resubmission */}
-        <Route path="/fix" element={<TargetedFix />} />
-        <Route path="/fix/validating" element={<ResubmitValidating />} />
+                {/* Validation & Summary */}
+                <Route path="/submit/validating" element={<Validating />} />
+                <Route path="/result/summary" element={<SubmissionSummary />} />
 
-        {/* Screen 6.1 — Post-Submission Status */}
-        <Route path="/status" element={<StatusDashboard />} />
+                {/* Consent flow */}
+                <Route path="/consent" element={<ConsentScreen />} />
+                <Route path="/consent/reconsideration" element={<ReconsiderationWindow />} />
+
+                {/* Resubmission */}
+                <Route path="/fix" element={<TargetedFix />} />
+                <Route path="/fix/validating" element={<ResubmitValidating />} />
+
+                {/* Post-submission status */}
+                <Route path="/status" element={<StatusDashboard />} />
+              </Routes>
+            </AppShell>
+          </RequireAuth>
+        } />
       </Routes>
-      </AppShell>
     </BrowserRouter>
   )
 }

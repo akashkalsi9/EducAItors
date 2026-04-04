@@ -16,11 +16,11 @@ import { LayoutDashboard, BookOpen, FolderOpen, BarChart2, Ticket, HelpCircle, L
 
 // ─── Nav definitions ──────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { id: 'dashboard',   label: 'Dashboard',   Icon: LayoutDashboard, route: '/',             isActive: () => false                     },
-  { id: 'modules',     label: 'Modules',      Icon: FolderOpen,      route: '/status',       isActive: (p) => p.startsWith('/status')  },
-  { id: 'assignments', label: 'Assignments',  Icon: BookOpen,        route: '/',             isActive: (p) => p === '/' || p.startsWith('/submit') || p.startsWith('/result') || p.startsWith('/consent') || p.startsWith('/fix') || p === '/orientation' },
-  { id: 'results',     label: 'Results',      Icon: BarChart2,       route: '/result/ready', isActive: () => false  },
-  { id: 'tickets',     label: 'Support Tickets', Icon: Ticket,     route: '/tickets',      isActive: (p) => p.startsWith('/tickets') },
+  { id: 'dashboard',   label: 'Dashboard',       Icon: LayoutDashboard, route: '/',             isActive: (p) => p === '/' || p === '/assignment'  },
+  { id: 'modules',     label: 'Modules',          Icon: FolderOpen,      route: '/status',       isActive: (p) => p.startsWith('/status')  },
+  { id: 'assignments', label: 'Assignments',      Icon: BookOpen,        route: '/assignment',   isActive: (p) => p.startsWith('/submit') || p.startsWith('/result') || p.startsWith('/consent') || p.startsWith('/fix') || p === '/orientation' },
+  { id: 'results',     label: 'Results',          Icon: BarChart2,       route: '/result/ready', isActive: () => false  },
+  { id: 'tickets',     label: 'Support Tickets',  Icon: Ticket,          route: '/tickets',      isActive: (p) => p.startsWith('/tickets') },
 ]
 
 // ─── Single nav item ──────────────────────────────────────────────────────────
@@ -56,6 +56,13 @@ function NavItem({ item, onClose }) {
 
 // ─── AppSidebar ───────────────────────────────────────────────────────────────
 export default function AppSidebar({ isOpen = false, onClose }) {
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    localStorage.removeItem('educaitors_auth')
+    navigate('/login')
+  }
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -122,6 +129,7 @@ export default function AppSidebar({ isOpen = false, onClose }) {
           {/* Log out */}
           <button
             type="button"
+            onClick={handleLogout}
             className="h-10 w-full flex items-center rounded-lg transition-colors duration-150 text-danger hover:bg-danger-soft justify-center px-0 lg:justify-start lg:gap-2.5 lg:px-3"
             aria-label="Log out"
           >

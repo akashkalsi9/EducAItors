@@ -539,7 +539,7 @@ export default function SubmitPage() {
                   <div className="w-2 h-2 rounded-full bg-success" aria-hidden="true" />
                   <span className="text-[13px] text-muted">Your progress is saved automatically</span>
                 </div>
-                <p className="text-[11px] text-muted/60">AI will check your work. Your instructor decides the grade.</p>
+                <p className="text-[11px] text-muted/60">We'll do a quick check, then you can review before submitting.</p>
               </div>
               <div className="flex items-center gap-4">
                 <ProgressRing
@@ -555,7 +555,7 @@ export default function SubmitPage() {
                     state: { artifactData: slotData, linkStatuses }
                   })}
                 >
-                  Submit for analysis
+                  Review & submit
                 </Button>
               </div>
             </div>

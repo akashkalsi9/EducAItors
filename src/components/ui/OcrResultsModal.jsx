@@ -134,7 +134,7 @@ export default function OcrResultsModal({
                     </span>
                   </div>
                   <span className={`text-[12px] font-bold ${meta.color} ${meta.pillBg} rounded-full px-2.5 py-0.5 ml-auto shrink-0`}>
-                    OCR Confidence: {meta.score}
+                    Readability: {meta.score}
                   </span>
                 </div>
 

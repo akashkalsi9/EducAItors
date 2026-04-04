@@ -1,43 +1,36 @@
 /**
- * ValidationRunning — v2
+ * ValidationRunning — v3
  *
  * Screen 3.2 / 5.2 — Step-by-step validation progress.
- * Shows a checklist of what the system is doing: checking files, OCR, links, rubric mapping.
+ * Shows a checklist of what the system is doing: checking files, links, preparing summary.
  * Each step completes sequentially with staggered timing.
- * Auto-navigates to /result/analysis after all steps complete.
- *
- * Demo: triple-tap bottom zones to set result type (ready/warning/blocker).
+ * Auto-navigates to /result/summary after all steps complete.
  *
  * Props:
  *   isResubmission — boolean. Shows amber note if true.
  */
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, CheckCircle2, FileSearch, Link2, Layers, Sparkles } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Loader2, CheckCircle2, FileSearch, Link2, ClipboardCheck } from 'lucide-react'
 import { Card, CardContent } from '@heroui/react'
 import { mockAssignment } from '../data/mock-assignment'
 
 // ─── Validation steps ─────────────────────────────────────────────────────────
 const STEPS = [
-  { id: 'files',    label: 'Checking uploaded files',  Icon: FileSearch, completeAt: 1000  },
-  { id: 'links',    label: 'Verifying links',          Icon: Link2,      completeAt: 2500  },
-  { id: 'rubric',   label: 'Mapping to rubric',        Icon: Layers,     completeAt: 4000  },
-  { id: 'analysis', label: 'Generating analysis',      Icon: Sparkles,   completeAt: 5500  },
+  { id: 'files',  label: 'Checking uploaded files', Icon: FileSearch,     completeAt: 1200 },
+  { id: 'links',  label: 'Verifying links',         Icon: Link2,          completeAt: 2800 },
+  { id: 'review', label: 'Preparing summary',       Icon: ClipboardCheck, completeAt: 4200 },
 ]
 
 const RESUBMIT_STEPS = [
-  { id: 'recheck',  label: 'Re-checking updated item', Icon: FileSearch, completeAt: 1500  },
-  { id: 'analysis', label: 'Updating analysis',        Icon: Sparkles,   completeAt: 3000  },
+  { id: 'recheck', label: 'Re-checking updated item', Icon: FileSearch,     completeAt: 1500 },
+  { id: 'review',  label: 'Preparing summary',        Icon: ClipboardCheck, completeAt: 3000 },
 ]
 
 const RESUBMIT_NAVIGATE_AT = 3800
-
-const NAVIGATE_AT = 6300 // ms — navigate after brief pause post-completion
-
-// ─── Result route ─────────────────────────────────────────────────────────────
-const DEFAULT_DEMO_RESULT = 'warning'
+const NAVIGATE_AT = 5000
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ValidationRunning({ isResubmission: isResubmissionProp = false }) {
@@ -47,7 +40,6 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
   const isResubmission = isResubmissionProp || (routeState?.isResubmission ?? false)
   const steps = isResubmission ? RESUBMIT_STEPS : STEPS
   const navigateAt = isResubmission ? RESUBMIT_NAVIGATE_AT : NAVIGATE_AT
-  const primaryFile  = routeState?.primaryFile  ?? null
   const artifactData = routeState?.artifactData ?? null
   const linkStatuses = routeState?.linkStatuses ?? {}
   const { title } = mockAssignment
@@ -56,16 +48,9 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
   const [completedSteps, setCompletedSteps] = useState(new Set())
   const [activeStepIndex, setActiveStepIndex] = useState(0)
 
-  // ── Demo control ──────────────────────────────────────────────────────────
-  const demoResultRef   = useRef(DEFAULT_DEMO_RESULT)
-  const tapCountRef     = useRef({ left: 0, center: 0, right: 0 })
-  const tapTimerRef     = useRef({ left: null, center: null, right: null })
-  const [demoIndicator, setDemoIndicator] = useState(null)
-  const demoIndicatorTimerRef = useRef(null)
-
   // ── Progress percentage ───────────────────────────────────────────────────
   const progress = useMemo(() => {
-    if (completedSteps.size === 0) return 5 // show a sliver immediately
+    if (completedSteps.size === 0) return 5
     return Math.round((completedSteps.size / steps.length) * 100)
   }, [completedSteps, steps])
 
@@ -73,43 +58,23 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
   useEffect(() => {
     const timers = []
 
-    // Schedule each step completion
     steps.forEach((step, index) => {
-      // Activate step slightly before completion
       const activateAt = index === 0 ? 100 : steps[index - 1].completeAt + 200
       timers.push(setTimeout(() => setActiveStepIndex(index), activateAt))
 
-      // Complete step
       timers.push(setTimeout(() => {
         setCompletedSteps(prev => new Set([...prev, step.id]))
       }, step.completeAt))
     })
 
-    // Navigate after all steps complete
     timers.push(setTimeout(() => {
-      navigate('/result/analysis', {
-        state: { primaryFile, artifactData, linkStatuses, isResubmission, readiness: demoResultRef.current },
+      navigate('/result/summary', {
+        state: { artifactData, linkStatuses, isResubmission },
       })
     }, navigateAt))
 
     return () => timers.forEach(clearTimeout)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Demo triple-tap handler ───────────────────────────────────────────────
-  function handleDemoTap(zone) {
-    tapCountRef.current[zone] = (tapCountRef.current[zone] || 0) + 1
-    clearTimeout(tapTimerRef.current[zone])
-    tapTimerRef.current[zone] = setTimeout(() => { tapCountRef.current[zone] = 0 }, 1000)
-
-    if (tapCountRef.current[zone] >= 3) {
-      tapCountRef.current[zone] = 0
-      const mapping = { left: 'ready', center: 'warning', right: 'blocker' }
-      demoResultRef.current = mapping[zone]
-      setDemoIndicator(mapping[zone])
-      clearTimeout(demoIndicatorTimerRef.current)
-      demoIndicatorTimerRef.current = setTimeout(() => setDemoIndicator(null), 2000)
-    }
-  }
 
   // ── Step status ───────────────────────────────────────────────────────────
   function getStepStatus(step, index) {
@@ -147,7 +112,7 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
 
             {/* ── Headline ──────────────────────────────────────────────── */}
             <h1 className="text-[20px] font-bold text-foreground text-center tracking-tight">
-              {isResubmission ? 'Checking your update...' : 'Validating your submission...'}
+              {isResubmission ? 'Checking your update...' : 'Checking your submission...'}
             </h1>
             <p className="text-[14px] text-muted text-center mt-1.5">
               {isResubmission ? "We're only re-checking what you changed" : 'This usually takes a few seconds'}
@@ -237,7 +202,7 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
             {/* ── Reassurance ────────────────────────────────────────────── */}
             <div className="mt-5 text-center">
               <p className="text-[13px] text-muted">
-                Nothing is submitted yet — you can still make changes.
+                Almost there — just a quick review next.
               </p>
               <p className="text-[12px] text-muted/60 mt-1.5">
                 We check first. Your instructor reviews next.
@@ -246,29 +211,7 @@ export default function ValidationRunning({ isResubmission: isResubmissionProp =
 
           </CardContent>
         </Card>
-
-        {/* ── Demo indicator ──────────────────────────────────────────── */}
-        <AnimatePresence>
-          {demoIndicator && (
-            <motion.p
-              key={demoIndicator}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-[10px] text-muted/60 text-center mt-3"
-            >
-              → {demoIndicator.charAt(0).toUpperCase() + demoIndicator.slice(1)}
-            </motion.p>
-          )}
-        </AnimatePresence>
       </motion.div>
-
-      {/* ── Hidden demo triple-tap zones ───────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 flex h-20" aria-hidden="true">
-        <button type="button" className="flex-1 opacity-0" onClick={() => handleDemoTap('left')} tabIndex={-1} />
-        <button type="button" className="flex-1 opacity-0" onClick={() => handleDemoTap('center')} tabIndex={-1} />
-        <button type="button" className="flex-1 opacity-0" onClick={() => handleDemoTap('right')} tabIndex={-1} />
-      </div>
     </div>
   )
 }

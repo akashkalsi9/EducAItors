@@ -5,10 +5,22 @@
  * Right: Bell notification badge · separator · student avatar + name
  */
 
+import { useState } from 'react'
 import { Menu, Bell } from 'lucide-react'
 import { Avatar, AvatarFallback, Button } from '@heroui/react'
+import NotificationPopup from './ui/NotificationPopup'
+import { mockNotifications } from '../data/mock-dashboard'
 
 export default function AppHeader({ onMenuClick }) {
+  const [notifOpen, setNotifOpen]         = useState(false)
+  const [notifications, setNotifications] = useState(mockNotifications)
+
+  const unreadCount = notifications.filter(n => !n.read).length
+
+  function handleMarkAllRead() {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+  }
+
   return (
     <header className="fixed top-0 right-0 z-50 h-16 bg-white border-b border-border flex items-center px-5 left-0 md:left-[48px] lg:left-[240px]">
 
@@ -35,15 +47,29 @@ export default function AppHeader({ onMenuClick }) {
       {/* ── Right: notification bell + separator + profile ───────────────── */}
       <div className="flex items-center gap-4 shrink-0">
 
-        {/* Bell with notification dot */}
-        <button
-          type="button"
-          className="hidden sm:flex relative items-center justify-center w-10 h-10 rounded-lg text-muted hover:bg-surface-secondary hover:text-foreground transition-colors"
-          aria-label="Notifications (1 unread)"
-        >
-          <Bell className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden="true" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-pink ring-2 ring-white" aria-hidden="true" />
-        </button>
+        {/* Bell with notification popup */}
+        <div className="relative hidden sm:block">
+          <button
+            type="button"
+            onClick={() => setNotifOpen(!notifOpen)}
+            className="relative flex items-center justify-center w-10 h-10 rounded-lg text-muted hover:bg-surface-secondary hover:text-foreground transition-colors"
+            aria-label={`Notifications (${unreadCount} unread)`}
+          >
+            <Bell className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden="true" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[16px] h-4 rounded-full bg-danger flex items-center justify-center px-1">
+                <span className="text-[10px] font-bold text-white leading-none">{unreadCount}</span>
+              </span>
+            )}
+          </button>
+
+          <NotificationPopup
+            isOpen={notifOpen}
+            onClose={() => setNotifOpen(false)}
+            notifications={notifications}
+            onMarkAllRead={handleMarkAllRead}
+          />
+        </div>
 
         {/* Vertical separator */}
         <div className="hidden sm:block w-px h-7 bg-border" aria-hidden="true" />
