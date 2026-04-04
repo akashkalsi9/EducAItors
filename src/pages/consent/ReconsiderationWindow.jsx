@@ -87,7 +87,7 @@ export default function ReconsiderationWindow() {
                   <div className="mt-6 flex items-center gap-3 w-full">
                     <Button
                       variant="outline"
-                      size="sm"
+                      size="lg"
                       className="rounded-lg flex-1 gap-2"
                       onPress={() => navigate('/result/summary')}
                     >
@@ -96,11 +96,11 @@ export default function ReconsiderationWindow() {
                     </Button>
                     <Button
                       variant="primary"
-                      size="sm"
+                      size="lg"
                       className="rounded-lg flex-1 font-semibold"
                       onPress={() => navigate('/status')}
                     >
-                      Done
+                      I'm sure, proceed
                     </Button>
                   </div>
                 </>
